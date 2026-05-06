@@ -1,0 +1,6 @@
+# Local helper scripts
+upush.sh
+restart-odoo.sh
+
+# Legacy Node implementation kept locally only
+odoo-mcp-node/

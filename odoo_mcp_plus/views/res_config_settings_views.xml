@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.odoo.mcp.plus</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Odoo MCP Plus" string="Odoo MCP Plus" name="odoo_mcp_plus">
+                    <block title="MCP Server" name="odoo_mcp_plus_mcp_server">
+                        <setting id="odoo_mcp_plus_mcp_url" string="MCP Endpoint" help="Use this URL to connect an MCP client to this Odoo database.">
+                            <field name="odoo_mcp_plus_mcp_url" readonly="1"/>
+                        </setting>
+                    </block>
+                    <block title="AI Providers" name="odoo_mcp_plus_ai_providers">
+                        <setting id="odoo_mcp_plus_openai_api_key" string="OpenAI" help="Store an OpenAI API key for Odoo MCP Plus features.">
+                            <field name="odoo_mcp_plus_has_openai_api_key" invisible="1"/>
+                            <field name="odoo_mcp_plus_openai_api_key" password="True" placeholder="sk-..."/>
+                            <div class="text-muted mt8" invisible="not odoo_mcp_plus_has_openai_api_key">
+                                An OpenAI API key is currently stored.
+                            </div>
+                            <button
+                                name="action_odoo_mcp_plus_clear_openai_key"
+                                type="object"
+                                string="Clear OpenAI Key"
+                                class="btn-link mt8"
+                                icon="fa-trash"
+                                invisible="not odoo_mcp_plus_has_openai_api_key"
+                            />
+                        </setting>
+                        <setting id="odoo_mcp_plus_gemini_api_key" string="Gemini" help="Store a Gemini API key for Odoo MCP Plus features.">
+                            <field name="odoo_mcp_plus_has_gemini_api_key" invisible="1"/>
+                            <field name="odoo_mcp_plus_gemini_api_key" password="True" placeholder="AIza..."/>
+                            <div class="text-muted mt8" invisible="not odoo_mcp_plus_has_gemini_api_key">
+                                A Gemini API key is currently stored.
+                            </div>
+                            <button
+                                name="action_odoo_mcp_plus_clear_gemini_key"
+                                type="object"
+                                string="Clear Gemini Key"
+                                class="btn-link mt8"
+                                icon="fa-trash"
+                                invisible="not odoo_mcp_plus_has_gemini_api_key"
+                            />
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>
