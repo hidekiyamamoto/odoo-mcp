@@ -4,10 +4,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
@@ -15,10 +16,61 @@ const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const credentialsFilePath = resolve(appRoot, "odoo-credentials.json");
 const aiContextFilePath = resolve(appRoot, "ai-context.txt");
 const authTokenFilePath = resolve(appRoot, "mcp-auth-token");
-const httpHost = "127.0.0.1";
-const httpPort = 3910;
-const mcpPath = "/ai-mcp";
-const publicOrigin = "https://persona.standalone.io";
+const mcpConfigFilePath = resolve(appRoot, "odoo-mcp.conf");
+
+function readMcpConfig() {
+  const rawConfig = readFileSync(mcpConfigFilePath, "utf8");
+  const values = new Map<string, string>();
+
+  rawConfig.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith("#")) {
+      return;
+    }
+
+    const separatorIndex = trimmed.indexOf("=");
+
+    if (separatorIndex === -1) {
+      throw new Error(`Invalid config line in ${mcpConfigFilePath}: ${line}`);
+    }
+
+    values.set(
+      trimmed.slice(0, separatorIndex).trim(),
+      trimmed.slice(separatorIndex + 1).trim(),
+    );
+  });
+
+  const httpHost = values.get("http_host");
+  const httpPort = Number(values.get("http_port"));
+  const mcpPath = values.get("mcp_path");
+  const publicOrigin = values.get("public_origin");
+  const addonsCodeRoot = values.get("addons_code_root");
+
+  if (!httpHost) {
+    throw new Error(`Missing http_host in ${mcpConfigFilePath}`);
+  }
+
+  if (!Number.isInteger(httpPort) || httpPort <= 0 || httpPort > 65535) {
+    throw new Error(`Invalid http_port in ${mcpConfigFilePath}`);
+  }
+
+  if (!mcpPath?.startsWith("/")) {
+    throw new Error(`mcp_path must start with "/" in ${mcpConfigFilePath}`);
+  }
+
+  if (!publicOrigin?.startsWith("https://")) {
+    throw new Error(`public_origin must start with "https://" in ${mcpConfigFilePath}`);
+  }
+
+  if (!addonsCodeRoot?.startsWith("/")) {
+    throw new Error(`addons_code_root must be an absolute path in ${mcpConfigFilePath}`);
+  }
+
+  return { httpHost, httpPort, mcpPath, publicOrigin, addonsCodeRoot };
+}
+
+const { httpHost, httpPort, mcpPath, publicOrigin, addonsCodeRoot } = readMcpConfig();
 const resourceUri = `${publicOrigin}${mcpPath}`;
 const protectedResourceMetadataPath = "/.well-known/oauth-protected-resource";
 const authorizationServerMetadataPath = "/.well-known/oauth-authorization-server";
@@ -93,6 +145,29 @@ const odooSearchReadSchema = odooSearchSchema.extend({
 
 const aiContextSchema = z.object({
   text: z.string().describe("Full replacement text to store in ai-context.txt."),
+});
+
+const odooPythonCodeSearchSchema = z.object({
+  query: z.string().min(1).describe("Case-insensitive text to search for in .py files."),
+  module: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Optional Odoo module subfolder under addons_code_root, for example filologico."),
+  maxResults: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .optional()
+    .describe("Maximum matching lines to return. Defaults to 50."),
+});
+
+const odooPythonCodeReadSchema = z.object({
+  path: z
+    .string()
+    .min(1)
+    .describe("Relative path to a .py file under addons_code_root, for example filologico/models/res_partner.py."),
 });
 
 async function readOdooCredentials(): Promise<
@@ -269,6 +344,109 @@ async function readAiContext(): Promise<string> {
 
 async function writeAiContext(text: string): Promise<void> {
   await writeFile(aiContextFilePath, text, "utf8");
+}
+
+function resolveAddonsPath(relativePath = "."): string {
+  if (relativePath.startsWith("/") || relativePath.includes("\0")) {
+    throw new Error("Path must be relative to addons_code_root.");
+  }
+
+  const resolvedPath = resolve(addonsCodeRoot, relativePath);
+  const pathFromRoot = relative(addonsCodeRoot, resolvedPath);
+
+  if (
+    pathFromRoot === ".." ||
+    pathFromRoot.startsWith(`..${sep}`) ||
+    pathFromRoot.startsWith("/") ||
+    pathFromRoot.includes("\0")
+  ) {
+    throw new Error("Path escapes addons_code_root.");
+  }
+
+  return resolvedPath;
+}
+
+function toAddonsRelativePath(absolutePath: string): string {
+  return relative(addonsCodeRoot, absolutePath);
+}
+
+async function listPythonFiles(rootPath: string): Promise<string[]> {
+  const results: string[] = [];
+  const entries = await readdir(rootPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.name === "__pycache__" || entry.name.startsWith(".")) {
+      continue;
+    }
+
+    const entryPath = resolve(rootPath, entry.name);
+
+    if (entry.isDirectory()) {
+      results.push(...(await listPythonFiles(entryPath)));
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith(".py")) {
+      results.push(entryPath);
+    }
+  }
+
+  return results;
+}
+
+async function searchOdooPythonCode(params: {
+  query: string;
+  module?: string;
+  maxResults?: number;
+}) {
+  const searchRoot = resolveAddonsPath(params.module ?? ".");
+  const searchRootStats = await stat(searchRoot);
+
+  if (!searchRootStats.isDirectory()) {
+    throw new Error("Search root must be a directory.");
+  }
+
+  const normalizedQuery = params.query.toLowerCase();
+  const maxResults = params.maxResults ?? 50;
+  const matches: Array<{ path: string; line: number; text: string }> = [];
+
+  for (const filePath of await listPythonFiles(searchRoot)) {
+    const fileText = await readFile(filePath, "utf8");
+    const lines = fileText.split(/\r?\n/);
+
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!lines[index].toLowerCase().includes(normalizedQuery)) {
+        continue;
+      }
+
+      matches.push({
+        path: toAddonsRelativePath(filePath),
+        line: index + 1,
+        text: lines[index].trim(),
+      });
+
+      if (matches.length >= maxResults) {
+        return matches;
+      }
+    }
+  }
+
+  return matches;
+}
+
+async function readOdooPythonCodeFile(relativePath: string): Promise<string> {
+  if (!relativePath.endsWith(".py")) {
+    throw new Error("Only .py files can be read.");
+  }
+
+  const filePath = resolveAddonsPath(relativePath);
+  const fileStats = await stat(filePath);
+
+  if (!fileStats.isFile()) {
+    throw new Error("Path must point to a .py file.");
+  }
+
+  return readFile(filePath, "utf8");
 }
 
 async function getCredentialsOrToolResponse(): Promise<
@@ -472,6 +650,82 @@ function createMcpServer(): McpServer {
           },
         ],
       };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: error instanceof Error ? error.message : String(error),
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "odoo_python_code_search",
+    {
+      title: "Odoo Python Code Search",
+      description:
+        "Read-only search across .py files under the configured Odoo addons code root. Use module to limit the search to a module subfolder.",
+      inputSchema: odooPythonCodeSearchSchema.shape,
+    },
+    async ({ query, module, maxResults }) => {
+      try {
+        const matches = await searchOdooPythonCode({ query, module, maxResults });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  addonsCodeRoot,
+                  query,
+                  module: module ?? null,
+                  count: matches.length,
+                  matches,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: error instanceof Error ? error.message : String(error),
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "odoo_python_code_read",
+    {
+      title: "Odoo Python Code Read",
+      description:
+        "Read a single .py file under the configured Odoo addons code root. This tool is read-only and rejects paths outside that root.",
+      inputSchema: odooPythonCodeReadSchema.shape,
+    },
+    async ({ path }) => {
+      try {
+        return {
+          content: [
+            {
+              type: "text",
+              text: await readOdooPythonCodeFile(path),
+            },
+          ],
+        };
       } catch (error) {
         return {
           isError: true,

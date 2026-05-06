@@ -1,1 +1,240 @@
+18 Montenapoleone Odoo initial AI context
+=========================================
 
+Business context
+----------------
+This Odoo instance is for 18 Montenapoleone, a special real estate company focused on the Quadrilatero area of Milano. They may handle other activity too, but the core operating context is high-touch retail/luxury real estate in and around the Quadrilatero. The business is strongly driven by direct personal relationships: who knows whom, who moved from one company to another, which brand/company/person received which opportunities, and which location was offered to which party.
+
+Use Odoo data carefully and concretely. Prefer exact model/field lookups over assumptions. Use `odoo_search_read` for business records and the read-only Python code tools for code inspection:
+- `odoo_python_code_search`, configured with `addons_code_root=/usr/lib/python3/dist-packages/odoo/addons`
+- `odoo_python_code_read`
+
+Main models
+-----------
+Partners are the central object:
+- `res.partner` is used for both companies and people.
+- Company/person split is the standard boolean field `is_company`.
+- Companies: domain `[["is_company", "=", true]]`
+- People: domain `[["is_company", "!=", true]]`
+- Useful base fields: `id`, `name`, `display_name`, `is_company`, `email`, `phone`, `mobile`, `street`, `street2`, `city`, `state_id`, `country_id`, `user_id`, `category_id`, `lang`.
+- 18MNT partner extensions: `desc` (Attivita), `offer_language`, `p_offers`, `c_offers`, `locations`, `mandates`, `invoiced`, `recent_invoiced`, `recent_invoiced_year`, `owned_brands`, `licenced_brands`, `devplans`, `industry_id2`, `fair_partecipations`.
+
+Multiple company/person relations are modeled explicitly:
+- Model: `mnt18.relation`
+- Purpose: track a person connected to a company over time, including roles and obsolete relationships. This is important because the same person can change company and the company/person relationship history matters.
+- Fields:
+  - `xparent`: Company (`res.partner`, normally `is_company = true`)
+  - `child`: Contact/person (`res.partner`, normally `is_company != true`)
+  - `parent_name`, `child_name`: stored names used for search/display
+  - `obsolete`: when true, the relationship is historical/inactive
+  - `role`: role/title of the person at that company
+  - `email`, `phone`, `mobile`: relation-specific contact details
+  - `mailing`: Posta SI
+  - `auth`: Autorizzazione Comunicazione
+  - `address`: relation address
+  - `child_agent`, `parent_agent`: related user fields
+- Partner-side relation fields:
+  - On a company partner: `multichilds` -> `mnt18.relation` rows where this company is `xparent`
+  - On a person partner: `multiparents` -> `mnt18.relation` rows where this person is `child`
+  - `activemultichilds`: computed active/mailing contacts for a company
+  - `multichild_ids`: many2many convenience field for company employees
+  - `allkan`: HTML summary of current non-obsolete relations
+
+Locations are the core real estate objects:
+- Model: `mnt18.location`
+- Important fields:
+  - `display_name`: computed location name, usually brand + address/city/zone
+  - `active`: active/archive flag
+  - `listino`: boolean "Listino". This is the exact field for whether a location is in the listino.
+  - `website_listing`: boolean "Sito web"
+  - `brand`: Insegna (`mnt18.brand`)
+  - `owner`: Proprietà (`res.partner`)
+  - `referent`: Referente (`res.partner`)
+  - `locator`: Conduttore (`res.partner`)
+  - `sublocator`: Subconduttore (`res.partner`)
+  - `mediator`: Mediatore (`res.partner`)
+  - `agent`: Agente (`res.users`)
+  - `location_type`: Tipologia (`mnt18.location_type`, required)
+  - `street`, `street2`, `city`, `state_id`, `zone`, `country_id`
+  - `areasize`: Mq
+  - `typesize`: N. vetrine / piani
+  - `typedesc_ita`, `typedesc_eng`, `areadesc_ita`, `areadesc_eng`
+  - `notes_ita`, `notes_eng`: notes used in offers
+  - `notes_listing`: Note Listino
+  - `archivio_notes_listing`: archived listing notes
+  - `scheda_commission`: Provvigioni (`mnt18.offer_provvigioni`)
+  - `dossier_ita`, `dossier_eng`, `map_document`: binary documents
+  - `mandates`: one2many to `mnt18.mandate`
+  - `offers`: one2many to `mnt18.offer_location`
+  - `contracts`: one2many to `mnt18.location_contract`
+- Computed mandate fields also exist: `last_mandate`, `last_mandate_details`, `last_mandate_richiesta_e_valuta`, `last_mandate_canone_e_tipo`, `last_mandate_canone_durata`. However, the installed code currently has a bug in `_get_last_mandate` (`S.mandates[0]`), so do not rely on reading `last_mandate` in broad searches. Prefer querying `mnt18.mandate` by `location`.
+
+Mandates:
+- Model: `mnt18.mandate`
+- Purpose: mandate/authorization attached to a location, usually from a mandante and optionally a referent.
+- Fields:
+  - `display_name`: code like MYYYY-ID
+  - `display_name_w_loc`: code plus location
+  - `type`: selection `written` (scritto), `voice` (verbale), `ipotesi` (ipotetico)
+  - `state`: selection `active` (attivo), `suspended` (sospeso), `over` (superato), `18mnt` (ceduto 18mnt), `lost` (ceduto altri)
+  - `start`: Inizio M
+  - `end`: Fine M
+  - `location`: `mnt18.location`
+  - `partner`: Mandante (`res.partner`)
+  - `partner_ref`: Referente (`res.partner`)
+  - `agent`: Agente (`res.users`)
+  - `exclusive`: Esclusiva
+  - `renewable`: Rinnovabile
+  - `historic_location_name`
+  - `historic_request_curr`, `historic_request_val`, `historic_request_type`
+  - `historic_commission`
+  - `historic_canon`, `historic_canon_type`
+  - `historic_duration`, `historic_contract_start`, `historic_contract_end`
+  - `offers`: linked `mnt18.offer_location` rows
+- To determine whether a location has a mandate, query `mnt18.mandate` with `location = <location_id>`. For current/usable mandates, normally add `state = "active"` unless the user asks for historical mandates.
+
+Offers:
+- Header model: `mnt18.offer`
+- Purpose: an offer/campaign sent to people and/or companies, containing one or more locations.
+- Fields:
+  - `display_name`: computed from date/id/state
+  - `type`: selection `hand` (a mano), `email`, `mailing` (invio massivo)
+  - `state`: selection `draft` (bozza), `review` (revisione), `sent` (inviata)
+  - `subject`: Oggetto
+  - `agent`: Agente
+  - `send_date`: Data invio
+  - `destinations`: one2many to `mnt18.offer_destination`
+  - `locations`: one2many to `mnt18.offer_location`
+  - `riscontri`: one2many to `mnt18.offer_riscontro`
+  - `html_data`, `html_data_eng`, `text_data`
+  - `use_scheda_foto`, `use_piantine`, `use_dossier`, `extra_notes`
+
+Offer destinations:
+- Model: `mnt18.offer_destination`
+- Purpose: who received an offer.
+- Fields:
+  - `offer`: `mnt18.offer`
+  - `partner_company`: Societa (`res.partner`, domain companies)
+  - `partner_ppl`: Contatto (`res.partner`, domain people)
+  - `display_name`: person plus company when available
+  - `email`, `role`, `language`
+  - related fields: `locations`, `send_date`, `offer_state`, `offer_type`, `offer_agent`, `offer_id`
+  - feedback: `riscontro`, `riscontro_text`, `riscontri`
+- A company can receive an offer directly, a person can receive it directly, or a destination can carry both company and person. Use both `partner_company` and `partner_ppl` when reconstructing who was contacted.
+
+Offer locations:
+- Model: `mnt18.offer_location`
+- Purpose: which locations were included in an offer, with historic commercial terms captured at offer time.
+- Fields:
+  - `offer`: `mnt18.offer`
+  - `location`: `mnt18.location`
+  - `mandate`: `mnt18.mandate`
+  - `sequence`
+  - `historic_location_name`
+  - `areasize`
+  - `canon`, `canon_type`
+  - `currency`, `request`, `request_type`
+  - `commissions`, `commissions_scheda`
+  - `duration`, `contr_start`, `contr_end`
+  - related fields: `send_date`, `destinations`, `offer_agent`, `location_id`
+
+Offer feedback / riscontri:
+- Model: `mnt18.offer_riscontro`
+- Fields:
+  - `offer`: `mnt18.offer`
+  - `destination`: `mnt18.offer_destination`
+  - `location`: `mnt18.offer_location`
+  - `riscontro_text`: feedback content
+
+Common lookup patterns
+----------------------
+Use JSON-encoded Odoo domains in `odoo_search` / `odoo_search_read`.
+
+Find partners:
+- Companies by name:
+  model `res.partner`
+  domain `[[ "is_company", "=", true ], [ "name", "ilike", "brand or company name" ]]`
+  fields `["id","name","is_company","email","phone","mobile","user_id","category_id","offer_language"]`
+- People by name:
+  model `res.partner`
+  domain `[[ "is_company", "!=", true ], [ "name", "ilike", "person name" ]]`
+  fields `["id","name","is_company","email","phone","mobile","user_id","multiparents","p_offers"]`
+
+Find current company/person relationships:
+- People currently connected to a company:
+  model `mnt18.relation`
+  domain `[[ "xparent", "=", COMPANY_ID ], [ "obsolete", "=", false ]]`
+  fields `["id","xparent","child","child_name","role","email","phone","mobile","mailing","auth","obsolete"]`
+- Companies currently connected to a person:
+  model `mnt18.relation`
+  domain `[[ "child", "=", PERSON_ID ], [ "obsolete", "=", false ]]`
+  fields `["id","xparent","parent_name","child","role","email","phone","mobile","obsolete"]`
+- Historical relations for a person/company: same query, omit the `obsolete = false` condition.
+
+Find locations:
+- Locations in listino:
+  model `mnt18.location`
+  domain `[[ "listino", "=", true ], [ "active", "=", true ]]`
+  fields `["id","display_name","listino","brand","street","street2","city","zone","location_type","areasize","typesize","owner","referent","agent","notes_listing"]`
+- Locations not in listino:
+  model `mnt18.location`
+  domain `[[ "listino", "=", false ], [ "active", "=", true ]]`
+- Locations by address/name/brand text:
+  model `mnt18.location`
+  domain `[[ "display_name", "ilike", "via or brand text" ]]`
+  fields `["id","display_name","listino","brand","street","city","location_type","owner","referent"]`
+- Locations owned/referenced/leased by a partner:
+  model `mnt18.location`
+  domain examples:
+  `[[ "owner", "=", PARTNER_ID ]]`
+  `[[ "referent", "=", PARTNER_ID ]]`
+  `[[ "locator", "=", PARTNER_ID ]]`
+  fields `["id","display_name","listino","owner","referent","locator","sublocator","mediator"]`
+
+Find mandates:
+- Active mandates for a location:
+  model `mnt18.mandate`
+  domain `[[ "location", "=", LOCATION_ID ], [ "state", "=", "active" ]]`
+  fields `["id","display_name","display_name_w_loc","type","state","start","end","location","partner","partner_ref","exclusive","renewable","historic_request_val","historic_request_type","historic_canon","historic_canon_type","historic_commission"]`
+- Any mandates involving a partner as mandante or referent:
+  model `mnt18.mandate`
+  domain `["|", [ "partner", "=", PARTNER_ID ], [ "partner_ref", "=", PARTNER_ID ]]`
+  fields `["id","display_name_w_loc","state","type","start","end","location","partner","partner_ref"]`
+- Locations with active mandate: query `mnt18.mandate` first with `state = active`, then read the returned `location` values.
+
+Find offers:
+- Offers sent to a company:
+  model `mnt18.offer_destination`
+  domain `[[ "partner_company", "=", COMPANY_ID ]]`
+  fields `["id","offer","send_date","offer_state","offer_type","partner_company","partner_ppl","email","role","locations","riscontro","riscontro_text"]`
+- Offers sent to a person:
+  model `mnt18.offer_destination`
+  domain `[[ "partner_ppl", "=", PERSON_ID ]]`
+  fields `["id","offer","send_date","offer_state","offer_type","partner_company","partner_ppl","email","role","locations","riscontro","riscontro_text"]`
+- Locations included in an offer:
+  model `mnt18.offer_location`
+  domain `[[ "offer", "=", OFFER_ID ]]`
+  fields `["id","offer","location","mandate","historic_location_name","request","request_type","canon","canon_type","commissions","areasize","duration","contr_start","contr_end"]`
+- Offers that included a location:
+  model `mnt18.offer_location`
+  domain `[[ "location", "=", LOCATION_ID ]]`
+  fields `["id","offer","send_date","location","mandate","historic_location_name","request","canon","commissions"]`
+- Feedback for an offer/location/destination:
+  model `mnt18.offer_riscontro`
+  domain examples:
+  `[[ "offer", "=", OFFER_ID ]]`
+  `[[ "location", "=", OFFER_LOCATION_ID ]]`
+  `[[ "destination", "=", OFFER_DESTINATION_ID ]]`
+  fields `["id","offer","destination","location","riscontro_text"]`
+
+Query safety and style
+----------------------
+- Start with narrow searches and explicit fields. Avoid broad `search_read` with many computed fields.
+- For `mnt18.location`, avoid broad reads of `last_mandate` until the compute bug is fixed; query `mnt18.mandate` instead.
+- Use `limit` and `order` on large models. Current approximate counts: `mnt18.location` ~5941, `mnt18.mandate` ~2373, `mnt18.offer` ~28380, `mnt18.offer_destination` ~37056, `mnt18.offer_location` ~47150, `mnt18.relation` ~22782, `res.partner` ~33318.
+- When reconstructing a business story, follow this chain:
+  1. `res.partner` for company/person identity.
+  2. `mnt18.relation` for direct personal/company relationships over time.
+  3. `mnt18.location` for real estate assets and whether they are in listino via `listino`.
+  4. `mnt18.mandate` for mandate availability and mandate terms.
+  5. `mnt18.offer_destination` and `mnt18.offer_location` to understand what was offered to whom.
