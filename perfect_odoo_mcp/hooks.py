@@ -3,7 +3,19 @@ from odoo import SUPERUSER_ID, api, release
 
 MODULE = "perfect_odoo_mcp"
 VIEW_NAME = "res.config.settings.view.form.inherit.perfect.odoo.mcp"
+VIEW_XMLID = "res_config_settings_view_form_installed"
 SETTINGS_URL = "/perfect_odoo_mcp/settings"
+LEGACY_XMLIDS = [
+    "res_config_settings_view_form",
+    VIEW_XMLID,
+    "action_perfect_odoo_mcp_settings",
+    "action_perfect_odoo_mcp_settings_url",
+]
+CURRENT_XMLIDS = [
+    "menu_perfect_odoo_mcp_settings",
+    "action_perfect_odoo_mcp_settings_window",
+    VIEW_XMLID,
+]
 REQUIRED_SETTINGS_FIELDS = {
     "perfect_odoo_mcp_mcp_url",
     "perfect_odoo_mcp_custom_tools_enabled",
@@ -188,7 +200,25 @@ def _new_settings_arch():
 """
 
 
-def _cleanup_records(env, include_window_actions=False):
+def _unlink_xmlids(env, names, unlink_records=False):
+    xmlids = env["ir.model.data"].sudo().search(
+        [
+            ("module", "=", MODULE),
+            ("name", "in", names),
+        ]
+    )
+    for xmlid in xmlids:
+        record = env[xmlid.model].sudo().browse(xmlid.res_id) if unlink_records else None
+        xmlid.unlink()
+        if record and record.exists():
+            record.unlink()
+
+
+def _cleanup_records(env, include_current_records=False):
+    _unlink_xmlids(env, LEGACY_XMLIDS, unlink_records=True)
+    if include_current_records:
+        _unlink_xmlids(env, CURRENT_XMLIDS, unlink_records=True)
+
     view_domain = [
         "|",
         ("name", "=", VIEW_NAME),
@@ -202,7 +232,22 @@ def _cleanup_records(env, include_window_actions=False):
     if url_actions:
         url_actions.unlink()
 
-    if include_window_actions:
+    legacy_menus = env["ir.ui.menu"].search(
+        [
+            ("name", "=", "Perfect Odoo MCP"),
+            "|",
+            ("action", "ilike", "ir.actions.act_url,"),
+            ("action", "=", False),
+        ]
+    )
+    if legacy_menus:
+        legacy_menus.unlink()
+
+    if include_current_records:
+        menus = env["ir.ui.menu"].search([("name", "=", "Perfect Odoo MCP")])
+        if menus:
+            menus.unlink()
+
         settings_actions = env["ir.actions.act_window"].search(
             [
                 ("name", "=", "Perfect Odoo MCP"),
@@ -238,13 +283,22 @@ def _create_settings_view(env):
         return
 
     arch = _old_settings_arch() if _major_version() <= 16 else _new_settings_arch()
-    env["ir.ui.view"].create(
+    view = env["ir.ui.view"].create(
         {
             "name": VIEW_NAME,
             "type": "form",
             "model": "res.config.settings",
             "inherit_id": parent.id,
             "arch": arch,
+        }
+    )
+    env["ir.model.data"].sudo().create(
+        {
+            "module": MODULE,
+            "name": VIEW_XMLID,
+            "model": "ir.ui.view",
+            "res_id": view.id,
+            "noupdate": False,
         }
     )
 
@@ -257,7 +311,7 @@ def post_init_hook(*args):
 
 def uninstall_hook(*args):
     env = _hook_env(*args)
-    _cleanup_records(env, include_window_actions=True)
+    _cleanup_records(env, include_current_records=True)
 
     params = env["ir.config_parameter"].sudo().search([("key", "in", CONFIG_PARAMETERS)])
     if params:
