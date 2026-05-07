@@ -1,0 +1,17 @@
+MODULE_NAME = "perfect_odoo_mcp"
+
+MCP_PATH = "/perfect_odoo_mcp/mcp"
+OAUTH_AUTHORIZE_PATH = "/perfect_odoo_mcp/oauth/authorize"
+OAUTH_TOKEN_PATH = "/perfect_odoo_mcp/oauth/token"
+OAUTH_REGISTER_PATH = "/perfect_odoo_mcp/oauth/register"
+
+AI_CONTEXT_PARAM = "perfect_odoo_mcp.ai_context"
+AUTH_CODE_PARAM_PREFIX = "perfect_odoo_mcp.oauth_code."
+CUSTOM_TOOLS_ENABLED_PARAM = "perfect_odoo_mcp.custom_tools_enabled"
+SQL_ENABLED_PARAM = "perfect_odoo_mcp.sql_enabled"
+SQL_READONLY_PARAM = "perfect_odoo_mcp.sql_readonly"
+SQL_HOST_PARAM = "perfect_odoo_mcp.sql_host"
+SQL_PORT_PARAM = "perfect_odoo_mcp.sql_port"
+SQL_DATABASE_PARAM = "perfect_odoo_mcp.sql_database"
+SQL_USER_PARAM = "perfect_odoo_mcp.sql_user"
+SQL_PASSWORD_PARAM = "perfect_odoo_mcp.sql_password"
