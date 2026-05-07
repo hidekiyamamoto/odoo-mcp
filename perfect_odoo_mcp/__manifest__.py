@@ -13,6 +13,7 @@
         "views/res_config_settings_views.xml",
     ],
     "images": [
+        "thumb.png",
         "static/description/thumbnail.svg",
         "static/description/banner.svg",
     ],
