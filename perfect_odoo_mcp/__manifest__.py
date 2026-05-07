@@ -11,6 +11,8 @@
     "data": [
         "views/res_config_settings_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
+    "uninstall_hook": "uninstall_hook",
     "images": [
         "thumb.png",
         "static/description/thumbnail.svg",
