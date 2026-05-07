@@ -1,9 +1,9 @@
 from odoo import fields, models
 
 
-class OdooMcpOAuthToken(models.Model):
-    _name = "odoo.mcp.oauth.token"
-    _description = "Odoo MCP OAuth Token"
+class PerfectOdooMcpOAuthToken(models.Model):
+    _name = "perfect.odoo.mcp.oauth.token"
+    _description = "Perfect Odoo MCP OAuth Token"
     _order = "create_date desc"
 
     name = fields.Char(required=True)

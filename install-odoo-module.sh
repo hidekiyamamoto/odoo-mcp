@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
-MODULE_NAME="odoo_mcp"
+MODULE_NAME="perfect_odoo_mcp"
 WORKDIR=""
 DATABASE=""
 ODOO_BIN=""
@@ -12,7 +12,7 @@ CONFIG_FILE=""
 
 usage() {
     cat <<'EOF'
-Install Odoo MCP into a local Odoo addons directory.
+Install Perfect Odoo MCP into a local Odoo addons directory.
 
 Usage:
   ./install-odoo-module.sh [options]
@@ -321,11 +321,11 @@ fi
 
 cat <<EOF
 
-All set. Odoo MCP is in place.
+All set. Perfect Odoo MCP is in place.
 
 Next:
   1. Restart Odoo if this addons directory is loaded by a running service.
-  2. Open Apps, remove any app search filter if needed, and install "Odoo MCP".
+  2. Open Apps, remove any app search filter if needed, and install "Perfect Odoo MCP".
 EOF
 
 if [[ -z "$DATABASE" ]]; then

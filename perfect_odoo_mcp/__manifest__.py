@@ -1,5 +1,5 @@
 {
-    "name": "Odoo MCP",
+    "name": "Perfect Odoo MCP",
     "summary": "Odoo-native MCP server with OAuth, ACL-aware tools, SQL, and custom tool development.",
     "version": "17.0.1.0.0",
     "category": "Technical",

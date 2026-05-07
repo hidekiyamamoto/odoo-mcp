@@ -18,28 +18,28 @@ from odoo.tools import config as odoo_config
 
 _logger = logging.getLogger(__name__)
 
-MCP_PATH = "/odoo_mcp/mcp"
+MCP_PATH = "/perfect_odoo_mcp/mcp"
 MCP_PROTOCOL_VERSION = "2024-11-05"
-OAUTH_AUTHORIZE_PATH = "/odoo_mcp/oauth/authorize"
-OAUTH_TOKEN_PATH = "/odoo_mcp/oauth/token"
-OAUTH_REGISTER_PATH = "/odoo_mcp/oauth/register"
+OAUTH_AUTHORIZE_PATH = "/perfect_odoo_mcp/oauth/authorize"
+OAUTH_TOKEN_PATH = "/perfect_odoo_mcp/oauth/token"
+OAUTH_REGISTER_PATH = "/perfect_odoo_mcp/oauth/register"
 PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource"
 PROTECTED_RESOURCE_METADATA_SCOPED_PATH = f"{PROTECTED_RESOURCE_METADATA_PATH}{MCP_PATH}"
 AUTHORIZATION_SERVER_METADATA_PATH = "/.well-known/oauth-authorization-server"
 OAUTH_SCOPE = "odoo:read"
 AUTH_CODE_TTL_SECONDS = 5 * 60
 ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 8
-AUTH_CODE_PARAM_PREFIX = "odoo_mcp.oauth_code."
-AI_CONTEXT_PARAM = "odoo_mcp.ai_context"
-SQL_ENABLED_PARAM = "odoo_mcp.sql_enabled"
-SQL_READONLY_PARAM = "odoo_mcp.sql_readonly"
-SQL_HOST_PARAM = "odoo_mcp.sql_host"
-SQL_PORT_PARAM = "odoo_mcp.sql_port"
-SQL_DATABASE_PARAM = "odoo_mcp.sql_database"
-SQL_USER_PARAM = "odoo_mcp.sql_user"
-SQL_PASSWORD_PARAM = "odoo_mcp.sql_password"
-CUSTOM_TOOLS_ENABLED_PARAM = "odoo_mcp.custom_tools_enabled"
-EMPTY_AI_CONTEXT_BOOTSTRAP = """Odoo MCP context bootstrap
+AUTH_CODE_PARAM_PREFIX = "perfect_odoo_mcp.oauth_code."
+AI_CONTEXT_PARAM = "perfect_odoo_mcp.ai_context"
+SQL_ENABLED_PARAM = "perfect_odoo_mcp.sql_enabled"
+SQL_READONLY_PARAM = "perfect_odoo_mcp.sql_readonly"
+SQL_HOST_PARAM = "perfect_odoo_mcp.sql_host"
+SQL_PORT_PARAM = "perfect_odoo_mcp.sql_port"
+SQL_DATABASE_PARAM = "perfect_odoo_mcp.sql_database"
+SQL_USER_PARAM = "perfect_odoo_mcp.sql_user"
+SQL_PASSWORD_PARAM = "perfect_odoo_mcp.sql_password"
+CUSTOM_TOOLS_ENABLED_PARAM = "perfect_odoo_mcp.custom_tools_enabled"
+EMPTY_AI_CONTEXT_BOOTSTRAP = """Perfect Odoo MCP context bootstrap
 ================================
 
 No instance-specific AI context has been configured for this Odoo database yet.
@@ -47,7 +47,7 @@ No instance-specific AI context has been configured for this Odoo database yet.
 MANDATORY INITIALIZATION PROTOCOL
 ---------------------------------
 This is not background documentation. This is the required initialization procedure for this
-Odoo MCP connection.
+Perfect Odoo MCP connection.
 
 The current installation has no stored AI context. Until context has been created and stored,
 the agent does not yet know the business meaning of this database, its custom modules, or its
@@ -74,7 +74,7 @@ Required discovery sequence
    - Odoo version and database/domain.
    - Primary company name.
    - Installed modules, grouped by source.
-   - All modules classified as `third_party_or_custom`, `odoo_mcp`, or `unknown`.
+   - All modules classified as `third_party_or_custom`, `perfect_odoo_mcp`, or `unknown`.
 3. For each custom/unknown module, inspect code before assigning meaning:
    - Use `odoo_python_lookup` with `operation = "search"` for `_name =`, `_inherit =`, `fields.`, `Many2one`, `One2many`, `Many2many`, `Selection`, `compute=`, and business-looking labels.
    - Use `odoo_python_lookup` with `operation = "read"` on the most important model files.
@@ -96,12 +96,12 @@ Required output format for the generated context
 ------------------------------------------------
 Use this structure:
 
-`<Company or database name> Odoo MCP AI context`
+`<Company or database name> Perfect Odoo MCP AI context`
 ====================================================
 
 Runtime context
 ---------------
-- State that this runs inside Odoo through Odoo MCP.
+- State that this runs inside Odoo through Perfect Odoo MCP.
 - Explain that Odoo record tools execute as the OAuth-authorized Odoo user and must respect ACLs/record rules.
 - List the preferred tools and when to use them:
   - `install_info` for instance/module inventory.
@@ -193,11 +193,11 @@ CUSTOM_TOOL_FILE_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\.py$")
 CUSTOM_TOOLS_DIR = os.path.abspath(
     os.path.join(
         odoo_config.get("data_dir") or "/var/lib/odoo/.local/share/Odoo",
-        "odoo_mcp_custom_tools",
+        "perfect_odoo_mcp_custom_tools",
     )
 )
 CUSTOM_TOOLS_CACHE = None
-CUSTOM_TOOL_TEMPLATE = '''"""Draft custom MCP tool for Odoo MCP.
+CUSTOM_TOOL_TEMPLATE = '''"""Draft custom MCP tool for Perfect Odoo MCP.
 
 Set EXPOSED = True only after review. Draft tools can be tested with call-custom.
 """
@@ -279,7 +279,7 @@ TOOLS = [
         "name": "get-ai-context",
         "title": "Get AI Context",
         "description": (
-            "Load the Odoo MCP instance guidance. AI assistants should call this near "
+            "Load the Perfect Odoo MCP instance guidance. AI assistants should call this near "
             "the start of a session before using other Odoo tools."
         ),
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
@@ -287,7 +287,7 @@ TOOLS = [
     {
         "name": "set-ai-context",
         "title": "Set AI Context",
-        "description": "Replace the Odoo MCP instance guidance returned by get-ai-context.",
+        "description": "Replace the Perfect Odoo MCP instance guidance returned by get-ai-context.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -389,7 +389,7 @@ SQL_TOOL = {
     "title": "Direct SQL",
     "description": (
         "Execute SQL against the configured PostgreSQL database. This tool is only advertised "
-        "when direct database access is enabled in Odoo MCP settings."
+        "when direct database access is enabled in Perfect Odoo MCP settings."
     ),
     "inputSchema": {
         "type": "object",
@@ -706,9 +706,9 @@ def _hash_token(token):
 def _create_access_token(code_data):
     token = secrets.token_urlsafe(48)
     expires_at = Datetime.now() + timedelta(seconds=ACCESS_TOKEN_TTL_SECONDS)
-    request.env["odoo.mcp.oauth.token"].sudo().create(
+    request.env["perfect.odoo.mcp.oauth.token"].sudo().create(
         {
-            "name": f"Odoo MCP - {code_data['client_id']}",
+            "name": f"Perfect Odoo MCP - {code_data['client_id']}",
             "token_hash": _hash_token(token),
             "user_id": code_data["uid"],
             "client_id": code_data["client_id"],
@@ -733,7 +733,7 @@ def _authorized_mcp_user():
     if not token:
         return request.env["res.users"].sudo().browse()
 
-    oauth_token = request.env["odoo.mcp.oauth.token"].sudo().search(
+    oauth_token = request.env["perfect.odoo.mcp.oauth.token"].sudo().search(
         [
             ("token_hash", "=", _hash_token(token)),
             ("audience", "=", _absolute_url(MCP_PATH)),
@@ -788,7 +788,7 @@ def _authorize_page(params, error=None):
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Authorize Odoo MCP</title>
+    <title>Authorize Perfect Odoo MCP</title>
     <style>
       body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #1f2937; }}
       main {{ max-width: 38rem; margin: 0 auto; }}
@@ -799,7 +799,7 @@ def _authorize_page(params, error=None):
   </head>
   <body>
     <main>
-      <h1>Authorize Odoo MCP</h1>
+      <h1>Authorize Perfect Odoo MCP</h1>
       <p>This grants MCP access to <code>{_escape_html(_absolute_url(MCP_PATH))}</code>.</p>
       <p>Signed in as <strong>{_escape_html(request.env.user.display_name)}</strong>.</p>
       {f'<p class="error">{_escape_html(error)}</p>' if error else ''}
@@ -836,7 +836,7 @@ def _internal_required_page(logout_first=False):
   <body>
     <main>
       <h1>Odoo login required</h1>
-      <p>Continue with an internal Odoo user to authorize Odoo MCP.</p>
+      <p>Continue with an internal Odoo user to authorize Perfect Odoo MCP.</p>
       <a class="button" href="{_escape_html(login_url)}">Login and continue</a>
     </main>
   </body>
@@ -1055,8 +1055,8 @@ def _module_source(module):
     author_lower = author.lower()
     website_lower = website.lower()
 
-    if module.name == "odoo_mcp":
-        return "odoo_mcp"
+    if module.name == "perfect_odoo_mcp":
+        return "perfect_odoo_mcp"
     if "odoo" in author_lower or "odoo.com" in website_lower:
         return "odoo"
     if author or website:
@@ -1145,7 +1145,7 @@ def _installed_modules_info(user_env):
 
 def _ensure_custom_tools_enabled():
     if not _custom_tools_enabled():
-        raise ValueError("Custom tools creation is not enabled in Odoo MCP settings.")
+        raise ValueError("Custom tools creation is not enabled in Perfect Odoo MCP settings.")
 
 
 def _ensure_custom_tools_dir():
@@ -1172,7 +1172,7 @@ def _load_custom_tool_file(filename):
     if not os.path.isfile(path):
         raise FileNotFoundError(f"Custom tool file not found: {filename}")
 
-    module_name = f"odoo_mcp_custom_{filename[:-3]}_{hashlib.sha1(path.encode()).hexdigest()[:8]}"
+    module_name = f"perfect_odoo_mcp_custom_{filename[:-3]}_{hashlib.sha1(path.encode()).hexdigest()[:8]}"
     spec = importlib.util.spec_from_file_location(module_name, path)
     if not spec or not spec.loader:
         raise ValueError(f"Could not load custom tool file: {filename}")
@@ -1382,7 +1382,7 @@ def _validate_sql_allowed(query):
 
 def _execute_direct_sql(arguments):
     if not _sql_enabled():
-        raise ValueError("Direct database access is not enabled in Odoo MCP settings.")
+        raise ValueError("Direct database access is not enabled in Perfect Odoo MCP settings.")
 
     query = arguments.get("query")
     if not isinstance(query, str):
@@ -1501,7 +1501,7 @@ def _call_tool(name, arguments, user_env):
         if not isinstance(text, str):
             raise ValueError("text must be a string.")
         request.env["ir.config_parameter"].sudo().set_param(AI_CONTEXT_PARAM, text)
-        return _tool_text("Updated Odoo MCP AI context.")
+        return _tool_text("Updated Perfect Odoo MCP AI context.")
 
     if name == "odoo_search":
         model = arguments.get("model")
@@ -1623,7 +1623,7 @@ class OdooMcpPlusController(http.Controller):
 
             return _json_response(
                 {
-                    "name": "Odoo MCP",
+                    "name": "Perfect Odoo MCP",
                     "status": "ok",
                     "protocolVersion": MCP_PROTOCOL_VERSION,
                     "url": _absolute_url(MCP_PATH),
@@ -1663,7 +1663,7 @@ class OdooMcpPlusController(http.Controller):
                         "tools": {"listChanged": False},
                     },
                     "serverInfo": {
-                        "name": "odoo-mcp",
+                        "name": "perfect-odoo-mcp",
                         "version": "17.0.1.0.0",
                     },
                 },
@@ -1708,7 +1708,7 @@ class OdooMcpPlusController(http.Controller):
                 "authorization_servers": [_base_url()],
                 "scopes_supported": [OAUTH_SCOPE],
                 "bearer_methods_supported": ["header"],
-                "resource_name": "Odoo MCP",
+                "resource_name": "Perfect Odoo MCP",
             }
         )
 

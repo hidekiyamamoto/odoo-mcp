@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-label="Odoo MCP banner">
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-label="Perfect Odoo MCP banner">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1400" y2="560" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0f172a"/>
@@ -24,7 +24,7 @@
     <path d="M165 55v56M165 240v56M55 176h32M242 176h32" stroke="#e2e8f0" stroke-width="14" stroke-linecap="round"/>
   </g>
   <g transform="translate(520 136)">
-    <text x="0" y="58" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800">Odoo MCP</text>
+    <text x="0" y="58" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800">Perfect Odoo MCP</text>
     <text x="0" y="118" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Odoo-native MCP server</text>
     <text x="0" y="178" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">OAuth through Odoo login. Tools run as the authorized user.</text>
     <text x="0" y="220" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">ACL-aware records, optional SQL, and custom Python MCP tools.</text>
