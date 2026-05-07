@@ -4,22 +4,12 @@
             search="['|', '|', ('arch_db', 'ilike', 'name=&quot;perfect_odoo_mcp_'), ('arch_db', 'ilike', 'data-key=&quot;perfect_odoo_mcp&quot;'), ('arch_db', 'ilike', 'name=&quot;perfect_odoo_mcp&quot;')]"/>
     <delete model="ir.actions.act_url"
             search="[('url', '=', '/perfect_odoo_mcp/settings')]"/>
+    <delete model="ir.ui.menu"
+            search="[('name', '=', 'Perfect Odoo MCP')]"/>
+    <delete model="ir.actions.act_window"
+            search="[('name', '=', 'Perfect Odoo MCP'), ('res_model', '=', 'res.config.settings')]"/>
     <delete model="ir.attachment"
             search="[('url', 'like', '/web/assets/%'), '|', ('name', 'ilike', 'web.assets_backend'), ('url', 'ilike', 'web.assets_backend')]"/>
-
-    <record id="action_perfect_odoo_mcp_settings_window" model="ir.actions.act_window">
-        <field name="name">Perfect Odoo MCP</field>
-        <field name="res_model">res.config.settings</field>
-        <field name="view_mode">form</field>
-        <field name="target">inline</field>
-        <field name="context">{'module': 'perfect_odoo_mcp'}</field>
-    </record>
-
-    <menuitem id="menu_perfect_odoo_mcp_settings"
-              name="Perfect Odoo MCP"
-              parent="base.menu_administration"
-              action="action_perfect_odoo_mcp_settings_window"
-              sequence="95"/>
 
     <record id="res_config_settings_view_form" model="ir.ui.view">
         <field name="name">res.config.settings.view.form.inherit.perfect.odoo.mcp</field>
