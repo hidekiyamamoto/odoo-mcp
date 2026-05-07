@@ -108,6 +108,47 @@ EOF
     exit 1
 }
 
+reference_addon_dir() {
+    local candidate
+    for candidate in base web base_setup; do
+        if [[ -d "$ADDONS_DIR/$candidate" && "$ADDONS_DIR/$candidate" != "$TARGET_DIR" ]]; then
+            echo "$ADDONS_DIR/$candidate"
+            return 0
+        fi
+    done
+
+    for candidate in "$ADDONS_DIR"/*; do
+        if [[ -d "$candidate" && "$candidate" != "$TARGET_DIR" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+}
+
+match_addon_filesystem_rights() {
+    local target_dir="$1"
+    local reference_dir
+    reference_dir="$(reference_addon_dir || true)"
+    [[ -n "$reference_dir" ]] || fail "Could not find a reference addon in $ADDONS_DIR for filesystem permissions."
+
+    local reference_file=""
+    for candidate in "$reference_dir/__manifest__.py" "$reference_dir/__openerp__.py"; do
+        if [[ -f "$candidate" ]]; then
+            reference_file="$candidate"
+            break
+        fi
+    done
+    if [[ -z "$reference_file" ]]; then
+        reference_file="$(find "$reference_dir" -type f -print -quit)"
+    fi
+    [[ -n "$reference_file" ]] || fail "Reference addon has no files for filesystem permissions: $reference_dir"
+
+    echo "Matching filesystem owner and permissions from $(basename "$reference_dir")."
+    chown -R --reference="$reference_dir" "$target_dir"
+    find "$target_dir" -type d -exec chmod --reference="$reference_dir" {} +
+    find "$target_dir" -type f -exec chmod --reference="$reference_file" {} +
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--database)
@@ -331,6 +372,7 @@ for LEGACY_MODULE_NAME in "${LEGACY_MODULE_NAMES[@]}"; do
 done
 
 cp -a "$CLONE_DIR/$MODULE_NAME" "$TARGET_DIR"
+match_addon_filesystem_rights "$TARGET_DIR"
 
 echo "Installed $MODULE_NAME into $TARGET_DIR"
 
