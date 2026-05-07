@@ -9,7 +9,6 @@
     "sequence": 1,
     "depends": ["base", "base_setup"],
     "data": [
-        "security/ir.model.access.csv",
         "views/res_config_settings_views.xml",
     ],
     "images": [
@@ -20,4 +19,5 @@
     "installable": True,
     "application": True,
     "auto_install": False,
+    "post_init_hook": "post_init_hook",
 }
