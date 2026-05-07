@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <delete model="ir.ui.view"
+            search="['|', ('name', '=', 'res.config.settings.view.form.inherit.perfect.odoo.mcp'), ('arch_db', 'ilike', 'perfect_odoo_mcp_')]"/>
     <delete model="ir.actions.act_url"
             search="[('url', '=', '/perfect_odoo_mcp/settings')]"/>
+    <delete model="ir.attachment"
+            search="[('url', 'like', '/web/assets/%'), '|', ('name', 'ilike', 'web.assets_backend'), ('url', 'ilike', 'web.assets_backend')]"/>
 
     <record id="action_perfect_odoo_mcp_settings_window" model="ir.actions.act_window">
         <field name="name">Perfect Odoo MCP</field>
@@ -16,104 +20,4 @@
               parent="base.menu_administration"
               action="action_perfect_odoo_mcp_settings_window"
               sequence="95"/>
-
-    <record id="res_config_settings_view_form" model="ir.ui.view">
-        <field name="name">res.config.settings.view.form.inherit.perfect.odoo.mcp</field>
-        <field name="model">res.config.settings</field>
-        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('settings')]" position="inside">
-                <div class="app_settings_block" data-string="Perfect Odoo MCP" string="Perfect Odoo MCP" data-key="perfect_odoo_mcp">
-                    <h2>MCP Server</h2>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_mcp_url">
-                            <div class="o_setting_left_pane"/>
-                            <div class="o_setting_right_pane">
-                                <label for="perfect_odoo_mcp_mcp_url"/>
-                                <div class="text-muted">Use this URL to connect an MCP client to this Odoo database.</div>
-                                <div class="content-group mt16">
-                                    <field name="perfect_odoo_mcp_mcp_url" readonly="1" nolabel="1" class="w-100"/>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_custom_tools_enabled_setting">
-                            <div class="o_setting_left_pane">
-                                <field name="perfect_odoo_mcp_custom_tools_enabled"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="perfect_odoo_mcp_custom_tools_enabled"/>
-                                <div class="text-muted">
-                                    Expose MCP tools that let an authorized MCP client read, write, reload, and test custom Python MCP tools.
-                                </div>
-                                <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_custom_tools_enabled', '=', False)]}">
-                                    Custom tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h2>Database Access</h2>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_enabled_setting">
-                            <div class="o_setting_left_pane">
-                                <field name="perfect_odoo_mcp_sql_enabled"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="perfect_odoo_mcp_sql_enabled"/>
-                                <div class="text-muted">
-                                    Expose a direct PostgreSQL MCP tool. Keep this disabled unless you explicitly need database-level access.
-                                </div>
-                                <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_sql_enabled', '=', False)]}">
-                                    Direct SQL access bypasses Odoo ORM protections. Use a restricted PostgreSQL user whenever possible.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_readonly_setting" attrs="{'invisible': [('perfect_odoo_mcp_sql_enabled', '=', False)]}">
-                            <div class="o_setting_left_pane">
-                                <field name="perfect_odoo_mcp_sql_readonly"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="perfect_odoo_mcp_sql_readonly"/>
-                                <div class="text-muted">
-                                    Refuse write-like SQL operations and open PostgreSQL sessions in readonly mode.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_connection_setting" attrs="{'invisible': [('perfect_odoo_mcp_sql_enabled', '=', False)]}">
-                            <div class="o_setting_left_pane"/>
-                            <div class="o_setting_right_pane">
-                                <span class="o_form_label">SQL Connection</span>
-                                <div class="text-muted">PostgreSQL connection used by the direct SQL MCP tool.</div>
-                                <div class="content-group mt16">
-                                    <div class="row mt8">
-                                        <label for="perfect_odoo_mcp_sql_host" class="col-lg-3 o_light_label"/>
-                                        <field name="perfect_odoo_mcp_sql_host" placeholder="127.0.0.1"/>
-                                    </div>
-                                    <div class="row mt8">
-                                        <label for="perfect_odoo_mcp_sql_port" class="col-lg-3 o_light_label"/>
-                                        <field name="perfect_odoo_mcp_sql_port" placeholder="5432"/>
-                                    </div>
-                                    <div class="row mt8">
-                                        <label for="perfect_odoo_mcp_sql_database" class="col-lg-3 o_light_label"/>
-                                        <field name="perfect_odoo_mcp_sql_database"/>
-                                    </div>
-                                    <div class="row mt8">
-                                        <label for="perfect_odoo_mcp_sql_user" class="col-lg-3 o_light_label"/>
-                                        <field name="perfect_odoo_mcp_sql_user"/>
-                                    </div>
-                                    <div class="row mt8">
-                                        <label for="perfect_odoo_mcp_sql_password" class="col-lg-3 o_light_label"/>
-                                        <field name="perfect_odoo_mcp_sql_password" password="True"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </xpath>
-        </field>
-    </record>
 </odoo>
