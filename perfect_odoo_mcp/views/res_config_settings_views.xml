@@ -45,6 +45,33 @@
                         </div>
                     </div>
 
+                    <h2>Module Editing</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_module_editing_enabled_setting">
+                            <div class="o_setting_left_pane">
+                                <field name="perfect_odoo_mcp_module_editing_enabled"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="perfect_odoo_mcp_module_editing_enabled"/>
+                                <div class="text-muted">Expose one MCP tool that can list, read, write, and delete files inside explicitly allowlisted module folders.</div>
+                                <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_module_editing_enabled', '=', False)]}">
+                                    Module editing changes Python/XML/data files on disk. Keep this disabled unless you are actively reviewing code edits.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_module_editing_modules_setting">
+                            <div class="o_setting_left_pane"/>
+                            <div class="o_setting_right_pane">
+                                <label for="perfect_odoo_mcp_module_editing_modules"/>
+                                <div class="text-muted">JSON allowlist of module names and folders available to the module editor tool.</div>
+                                <div class="content-group mt16">
+                                    <field name="perfect_odoo_mcp_module_editing_modules" nolabel="1" placeholder='[{"name": "my_module", "folder": "/mnt/extra-addons/my_module"}]'/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <h2>Database Access</h2>
                     <div class="row mt16 o_settings_container">
                         <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_enabled_setting">
