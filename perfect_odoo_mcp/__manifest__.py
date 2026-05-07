@@ -3,7 +3,7 @@
     "summary": "Odoo-native MCP server with OAuth, ACL-aware tools, SQL, and custom tool development.",
     "version": "17.0.1.0.0",
     "category": "Technical",
-    "author": "Hideki Andrea Yamamoto, 18 Montenapoleone",
+    "author": "Hideki Andrea Yamamoto",
     "website": "https://github.com/hidekiyamamoto/odoo-mcp",
     "license": "LGPL-3",
     "sequence": 1,
@@ -13,6 +13,7 @@
         "views/res_config_settings_views.xml",
     ],
     "images": [
+        "static/description/icon.png",
         "thumb.png",
         "static/description/thumbnail.svg",
         "static/description/banner.svg",

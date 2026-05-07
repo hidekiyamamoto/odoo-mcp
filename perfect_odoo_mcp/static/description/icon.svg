@@ -1,20 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Perfect Odoo MCP icon">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Perfect Odoo MCP icon">
   <defs>
-    <linearGradient id="bg" x1="24" y1="16" x2="232" y2="240" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#111827"/>
-      <stop offset="0.48" stop-color="#334155"/>
-      <stop offset="1" stop-color="#0f766e"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#120a4f"/>
+      <stop offset="0.48" stop-color="#6d3fd1"/>
+      <stop offset="1" stop-color="#67e8f9"/>
     </linearGradient>
-    <linearGradient id="line" x1="58" y1="68" x2="198" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#67e8f9"/>
-      <stop offset="1" stop-color="#a7f3d0"/>
+    <linearGradient id="screen" x1="96" y1="136" x2="416" y2="294" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#25106d"/>
+      <stop offset="0.64" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#2dd4bf"/>
     </linearGradient>
   </defs>
-  <rect width="256" height="256" rx="52" fill="url(#bg)"/>
-  <path d="M76 84h104a20 20 0 0 1 20 20v48a20 20 0 0 1-20 20H76a20 20 0 0 1-20-20v-48a20 20 0 0 1 20-20Z" fill="none" stroke="url(#line)" stroke-width="12"/>
-  <path d="M92 128h72" stroke="#f8fafc" stroke-width="12" stroke-linecap="round"/>
-  <circle cx="92" cy="128" r="14" fill="#a7f3d0"/>
-  <circle cx="164" cy="128" r="14" fill="#67e8f9"/>
-  <path d="M128 48v36M128 172v36M48 128h20M188 128h20" stroke="#e2e8f0" stroke-width="12" stroke-linecap="round"/>
-  <path d="M79 57 57 79M177 57l22 22M57 177l22 22M199 177l-22 22" stroke="#94a3b8" stroke-width="10" stroke-linecap="round"/>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <g opacity=".22" fill="none" stroke="#f8fafc" stroke-width="3">
+    <path d="M-72 380c92-60 176 44 278-20s172-118 276-42 118 42 164-20"/>
+    <path d="M-64 450c112-70 192 34 304-18s160-112 276-46"/>
+  </g>
+  <rect x="78" y="118" width="356" height="208" rx="18" fill="#111827"/>
+  <rect x="96" y="136" width="320" height="158" rx="12" fill="url(#screen)"/>
+  <path d="M78 286h356v40H78zM218 326h76v58H218z" fill="#202428"/>
+  <rect x="162" y="378" width="188" height="18" rx="4" fill="#202428"/>
+  <path d="M154 232c38-60 82-72 134 0 30 42 68 14 68-64" fill="none" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+  <path d="M196 252c42-48 82-44 138-58" fill="none" stroke="#c4b5fd" stroke-width="6" stroke-linecap="round"/>
+  <path d="M244 196c38-8 72-20 112-28" fill="none" stroke="#facc15" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#a78bfa" stroke-width="6">
+    <circle cx="154" cy="232" r="21" fill="#f8fafc"/>
+    <circle cx="188" cy="178" r="22" fill="#f8fafc"/>
+    <circle cx="244" cy="196" r="21" fill="#f8fafc"/>
+    <circle cx="286" cy="232" r="22" fill="#f8fafc"/>
+  </g>
+  <circle cx="356" cy="168" r="24" fill="#f8fafc" stroke="#f59e0b" stroke-width="6"/>
+  <circle cx="386" cy="194" r="8" fill="#facc15"/>
+  <circle cx="320" cy="168" r="7" fill="#facc15"/>
+  <rect x="166" y="42" width="180" height="50" rx="25" fill="#0f172a" opacity=".62"/>
+  <text x="206" y="78" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800">MCP</text>
 </svg>

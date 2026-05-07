@@ -14,16 +14,19 @@
       --cyan: #0891b2;
       --green: #15803d;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
+    .perfect-odoo-mcp,
+    .perfect-odoo-mcp * {
+      box-sizing: border-box;
+    }
+    .perfect-odoo-mcp {
       color: var(--ink);
       font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background: #ffffff;
+      overflow-x: hidden;
     }
-    .hero {
-      min-height: 430px;
-      padding: 72px 56px;
+    .perfect-odoo-mcp .hero {
+      min-height: 300px;
+      padding: 48px 32px;
       color: #f8fafc;
       background:
         linear-gradient(135deg, rgba(15,23,42,.98), rgba(30,41,59,.94) 48%, rgba(17,94,89,.94)),
@@ -31,7 +34,7 @@
       overflow: hidden;
       position: relative;
     }
-    .hero:after {
+    .perfect-odoo-mcp .hero:after {
       content: "";
       position: absolute;
       inset: auto -10% -45% 38%;
@@ -40,93 +43,107 @@
       transform: rotate(-8deg);
       border-radius: 999px;
     }
-    .hero-inner {
-      max-width: 1120px;
+    .perfect-odoo-mcp .hero-inner {
+      max-width: 960px;
       margin: 0 auto;
       position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: 190px 1fr;
-      gap: 48px;
+      grid-template-columns: 132px minmax(0, 1fr);
+      gap: 32px;
       align-items: center;
     }
-    .logo {
-      width: 180px;
-      height: 180px;
-      border-radius: 42px;
+    .perfect-odoo-mcp .logo {
+      width: 128px;
+      height: 128px;
+      border-radius: 28px;
       display: grid;
       place-items: center;
       background: rgba(15,23,42,.55);
       border: 1px solid rgba(226,232,240,.18);
       box-shadow: 0 24px 80px rgba(0,0,0,.28);
     }
-    .logo img { width: 138px; height: 138px; }
-    h1 {
+    .perfect-odoo-mcp .logo img { width: 96px; height: 96px; }
+    .perfect-odoo-mcp h1 {
       margin: 0 0 12px;
-      font-size: 58px;
-      line-height: 1;
+      font-size: 42px;
+      line-height: 1.08;
       letter-spacing: 0;
+      color: #f8fafc;
+      overflow-wrap: anywhere;
     }
-    .lead {
-      max-width: 760px;
+    .perfect-odoo-mcp .lead {
+      max-width: 720px;
       margin: 0;
       color: #dbeafe;
-      font-size: 24px;
+      font-size: 20px;
+      line-height: 1.45;
     }
-    .badges {
+    .perfect-odoo-mcp .badges {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 32px;
+      gap: 10px;
+      margin-top: 24px;
     }
-    .badge {
-      padding: 9px 14px;
+    .perfect-odoo-mcp .badge {
+      padding: 7px 12px;
       color: #ecfeff;
       background: rgba(15,118,110,.55);
       border: 1px solid rgba(204,251,241,.22);
       border-radius: 999px;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13px;
+      white-space: nowrap;
     }
-    .wrap {
-      max-width: 1120px;
+    .perfect-odoo-mcp .wrap {
+      max-width: 960px;
       margin: 0 auto;
-      padding: 54px 32px 70px;
+      padding: 42px 32px 64px;
     }
-    .grid {
+    .perfect-odoo-mcp .grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
       margin-top: 28px;
     }
-    .card {
+    .perfect-odoo-mcp .card {
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 24px;
+      padding: 22px;
       background: #fff;
+      min-width: 0;
     }
-    .card h3 {
+    .perfect-odoo-mcp .card h3 {
       margin: 0 0 8px;
       font-size: 19px;
+      line-height: 1.25;
+      color: var(--ink);
+      overflow-wrap: normal;
+      word-break: normal;
+      hyphens: none;
     }
-    .card p {
+    .perfect-odoo-mcp .card p {
       margin: 0;
       color: var(--muted);
+      overflow-wrap: anywhere;
     }
-    h2 {
+    .perfect-odoo-mcp h2 {
       margin: 0;
-      font-size: 34px;
+      font-size: 32px;
+      line-height: 1.18;
       letter-spacing: 0;
+      color: var(--ink);
+      overflow-wrap: anywhere;
     }
-    .section-copy {
+    .perfect-odoo-mcp .section-copy {
       max-width: 760px;
       color: var(--muted);
-      font-size: 18px;
+      font-size: 17px;
       margin: 12px 0 0;
     }
-    .flow {
+    .perfect-odoo-mcp .flow {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 1px;
       margin-top: 28px;
       overflow: hidden;
@@ -134,11 +151,13 @@
       border-radius: 8px;
       background: var(--line);
     }
-    .step {
+    .perfect-odoo-mcp .step {
       padding: 22px;
       background: var(--panel);
+      min-width: 0;
+      color: var(--muted);
     }
-    .step strong {
+    .perfect-odoo-mcp .step strong {
       display: block;
       color: var(--teal);
       margin-bottom: 6px;
@@ -146,25 +165,29 @@
       text-transform: uppercase;
       letter-spacing: .05em;
     }
-    .tools {
-      columns: 2;
-      column-gap: 42px;
+    .perfect-odoo-mcp .tools {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px 28px;
       margin-top: 24px;
       padding: 24px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
     }
-    .tools code {
+    .perfect-odoo-mcp code {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .perfect-odoo-mcp .tools code {
       color: #0f766e;
       font-weight: 700;
     }
-    .tools p {
-      break-inside: avoid;
-      margin: 0 0 14px;
+    .perfect-odoo-mcp .tools p {
+      margin: 0;
       color: var(--muted);
     }
-    .note {
+    .perfect-odoo-mcp .note {
       margin-top: 34px;
       padding: 22px 24px;
       border-left: 5px solid var(--teal);
@@ -173,20 +196,29 @@
       border-radius: 6px;
       font-weight: 600;
     }
+    .perfect-odoo-mcp section + section {
+      margin-top: 56px;
+    }
     @media (max-width: 820px) {
-      .hero { padding: 48px 24px; }
-      .hero-inner { grid-template-columns: 1fr; gap: 28px; }
-      h1 { font-size: 44px; }
-      .lead { font-size: 20px; }
-      .grid, .flow { grid-template-columns: 1fr; }
-      .tools { columns: 1; }
+      .perfect-odoo-mcp .hero { padding: 40px 22px; }
+      .perfect-odoo-mcp .hero-inner { grid-template-columns: 1fr; gap: 24px; }
+      .perfect-odoo-mcp .logo { width: 108px; height: 108px; border-radius: 24px; }
+      .perfect-odoo-mcp .logo img { width: 82px; height: 82px; }
+      .perfect-odoo-mcp h1 { font-size: 34px; }
+      .perfect-odoo-mcp h2 { font-size: 28px; }
+      .perfect-odoo-mcp .lead { font-size: 18px; }
+      .perfect-odoo-mcp .wrap { padding: 36px 22px 56px; }
+      .perfect-odoo-mcp .grid,
+      .perfect-odoo-mcp .flow,
+      .perfect-odoo-mcp .tools { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
+  <div class="perfect-odoo-mcp">
   <section class="hero">
     <div class="hero-inner">
-      <div class="logo"><img src="icon.svg" alt=""></div>
+      <div class="logo"><img src="icon.png" alt=""></div>
       <div>
         <h1>Perfect Odoo MCP</h1>
         <p class="lead">Expose Odoo as a native MCP server with Odoo login, user ACLs, optional direct database access, and a serious workflow for developing custom MCP tools.</p>
@@ -225,7 +257,7 @@
       </div>
     </section>
 
-    <section style="margin-top:64px">
+    <section>
       <h2>Context That Initializes Itself</h2>
       <p class="section-copy">The first context request is not a blank answer. If no durable context exists yet, Perfect Odoo MCP tells the consuming AI exactly how to bootstrap itself for this database before doing real work.</p>
       <div class="flow">
@@ -236,7 +268,7 @@
       </div>
     </section>
 
-    <section style="margin-top:64px">
+    <section>
       <h2>Custom Tools That Can Grow With the Database</h2>
       <p class="section-copy">Draft tools are normal Python files, tested before exposure, reviewed before publishing, and loaded by the MCP server without changing the core module.</p>
       <div class="flow">
@@ -247,7 +279,7 @@
       </div>
     </section>
 
-    <section style="margin-top:64px">
+    <section>
       <h2>Use With AI Clients</h2>
       <p class="section-copy">After installation, copy the HTTPS endpoint from Settings and connect it from an MCP-capable client.</p>
       <div class="grid">
@@ -266,7 +298,7 @@
       </div>
     </section>
 
-    <section style="margin-top:64px">
+    <section>
       <h2>Tool Surface</h2>
       <div class="tools">
         <p><code>search</code> and <code>fetch</code>: broad connector-style discovery.</p>
@@ -281,5 +313,6 @@
       <div class="note">Perfect Odoo MCP is designed as a foundation. More Odoo-native MCP capabilities are coming next.</div>
     </section>
   </main>
+  </div>
 </body>
 </html>
