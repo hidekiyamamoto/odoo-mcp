@@ -6,7 +6,7 @@
         "It is not compatible with Apps > Import Module because Odoo's import flow does not load "
         "new Python controllers, models, and security-sensitive route code."
     ),
-    "version": "14.0.1.0.0",
+    "version": "14.0.1.0.1",
     "category": "Technical",
     "author": "Hideki Andrea Yamamoto, Davide Bottazzo",
     "website": "https://github.com/hidekiyamamoto/odoo-mcp",
