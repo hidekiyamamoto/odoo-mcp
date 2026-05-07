@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
-MODULE_NAME="odoo_mcp_plus"
+MODULE_NAME="odoo_mcp"
 WORKDIR=""
 DATABASE=""
 ODOO_BIN=""
@@ -12,7 +12,7 @@ CONFIG_FILE=""
 
 usage() {
     cat <<'EOF'
-Install Odoo MCP Plus into a local Odoo addons directory.
+Install Odoo MCP into a local Odoo addons directory.
 
 Usage:
   ./install-odoo-module.sh [options]
@@ -321,11 +321,11 @@ fi
 
 cat <<EOF
 
-All set. Odoo MCP Plus is in place.
+All set. Odoo MCP is in place.
 
 Next:
   1. Restart Odoo if this addons directory is loaded by a running service.
-  2. Open Apps, remove any app search filter if needed, and install "Odoo MCP Plus".
+  2. Open Apps, remove any app search filter if needed, and install "Odoo MCP".
 EOF
 
 if [[ -z "$DATABASE" ]]; then

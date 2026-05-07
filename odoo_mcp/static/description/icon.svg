@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Odoo MCP icon">
+  <defs>
+    <linearGradient id="bg" x1="24" y1="16" x2="232" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.48" stop-color="#334155"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="line" x1="58" y1="68" x2="198" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="url(#bg)"/>
+  <path d="M76 84h104a20 20 0 0 1 20 20v48a20 20 0 0 1-20 20H76a20 20 0 0 1-20-20v-48a20 20 0 0 1 20-20Z" fill="none" stroke="url(#line)" stroke-width="12"/>
+  <path d="M92 128h72" stroke="#f8fafc" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="92" cy="128" r="14" fill="#a7f3d0"/>
+  <circle cx="164" cy="128" r="14" fill="#67e8f9"/>
+  <path d="M128 48v36M128 172v36M48 128h20M188 128h20" stroke="#e2e8f0" stroke-width="12" stroke-linecap="round"/>
+  <path d="M79 57 57 79M177 57l22 22M57 177l22 22M199 177l-22 22" stroke="#94a3b8" stroke-width="10" stroke-linecap="round"/>
+</svg>

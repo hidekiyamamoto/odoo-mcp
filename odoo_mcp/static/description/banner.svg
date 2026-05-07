@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-label="Odoo MCP banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1400" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="0.52" stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#115e59"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="160" y1="120" x2="1110" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="560" fill="url(#bg)"/>
+  <g opacity="0.2" stroke="#cbd5e1" stroke-width="2">
+    <path d="M0 450C210 350 300 540 520 426S850 250 1050 330s250 52 350-28"/>
+    <path d="M0 370c180-94 360 54 520-20s330-180 540-110 244 40 340-42"/>
+  </g>
+  <g transform="translate(120 115)">
+    <rect width="330" height="330" rx="64" fill="#0f172a" opacity="0.58"/>
+    <path d="M88 112h154a32 32 0 0 1 32 32v64a32 32 0 0 1-32 32H88a32 32 0 0 1-32-32v-64a32 32 0 0 1 32-32Z" fill="none" stroke="url(#accent)" stroke-width="16"/>
+    <path d="M112 176h106" stroke="#f8fafc" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="112" cy="176" r="18" fill="#a7f3d0"/>
+    <circle cx="218" cy="176" r="18" fill="#67e8f9"/>
+    <path d="M165 55v56M165 240v56M55 176h32M242 176h32" stroke="#e2e8f0" stroke-width="14" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(520 136)">
+    <text x="0" y="58" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800">Odoo MCP</text>
+    <text x="0" y="118" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Odoo-native MCP server</text>
+    <text x="0" y="178" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">OAuth through Odoo login. Tools run as the authorized user.</text>
+    <text x="0" y="220" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">ACL-aware records, optional SQL, and custom Python MCP tools.</text>
+    <g transform="translate(0 268)" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">
+      <rect x="0" y="0" width="168" height="44" rx="22" fill="#134e4a"/>
+      <text x="22" y="29" fill="#ccfbf1">Odoo Login</text>
+      <rect x="188" y="0" width="112" height="44" rx="22" fill="#164e63"/>
+      <text x="213" y="29" fill="#cffafe">ACLs</text>
+      <rect x="320" y="0" width="154" height="44" rx="22" fill="#334155"/>
+      <text x="344" y="29" fill="#f8fafc">Direct SQL</text>
+      <rect x="494" y="0" width="190" height="44" rx="22" fill="#14532d"/>
+      <text x="518" y="29" fill="#dcfce7">Custom Tools</text>
+    </g>
+  </g>
+</svg>

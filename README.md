@@ -1,6 +1,6 @@
-# Odoo MCP Plus
+# Odoo MCP
 
-Odoo MCP Plus turns an Odoo database into a first-class MCP server.
+Odoo MCP turns an Odoo database into a first-class MCP server.
 
 It is an Odoo module, not a sidecar service. The MCP endpoint runs inside Odoo, authenticates with Odoo login, stores OAuth tokens in Odoo, and executes record operations as the authorized Odoo user. That means normal Odoo ACLs and record rules stay in charge.
 
@@ -11,6 +11,7 @@ It is an Odoo module, not a sidecar service. The MCP endpoint runs inside Odoo, 
 - **Odoo MCP server**: exposes an Odoo database as an MCP endpoint for ChatGPT and other MCP clients.
 - **Odoo login + ACLs**: users authorize with Odoo login, and record tools run as that Odoo user, respecting ACLs and record rules.
 - **Odoo-aware tools**: search, fetch, model/domain queries, install inventory, AI context, and read-only Python addon lookup.
+- **Automatic context bootstrap**: when no AI context exists, the module returns a strict initialization protocol that pushes the client to inspect the install, review custom modules, and save a durable database-specific context.
 - **Optional direct database access**: exposes a PostgreSQL SQL tool only when enabled, with readonly safeguards available.
 - **Custom tool development**: lets an AI draft, read, write, test, reload, and publish custom MCP tools as reviewed Python files.
 - **Smart installer**: detects Odoo, chooses the right branch, copies the module, and refreshes the app list.
@@ -18,7 +19,7 @@ It is an Odoo module, not a sidecar service. The MCP endpoint runs inside Odoo, 
 
 ## Why This Exists
 
-Generic MCP servers can talk to Odoo from the outside. Odoo MCP Plus lives inside Odoo instead.
+Generic MCP servers can talk to Odoo from the outside. Odoo MCP lives inside Odoo instead.
 
 That matters because:
 
@@ -33,7 +34,7 @@ That matters because:
 ```text
 .
 ├── install-odoo-module.sh      # Smart installer for local Odoo deployments
-├── odoo_mcp_plus/              # Odoo addon
+├── odoo_mcp/              # Odoo addon
 │   ├── __manifest__.py
 │   ├── controllers/mcp.py      # MCP, OAuth, tool dispatch
 │   ├── models/                 # Settings and OAuth token model
@@ -69,7 +70,7 @@ The installer will:
 3. Select the matching Git branch when available.
 4. Prefer a high-confidence core addons directory over misleading empty config paths.
 5. Clone `https://github.com/hidekiyamamoto/odoo-mcp`.
-6. Copy `odoo_mcp_plus` into the selected addons directory.
+6. Copy `odoo_mcp` into the selected addons directory.
 7. Refresh Odoo's app list if `--database` is provided.
 
 Useful options:
@@ -81,20 +82,20 @@ Useful options:
 ./install-odoo-module.sh --branch 17.0 -d YOUR_DATABASE
 ```
 
-After copying, restart Odoo if the target addons directory is loaded by a running service. Then open Apps, remove the app search filter if needed, and install **Odoo MCP Plus**.
+After copying, restart Odoo if the target addons directory is loaded by a running service. Then open Apps, remove the app search filter if needed, and install **Odoo MCP**.
 
 ## Odoo Settings
 
 After installation, open:
 
 ```text
-Settings -> Odoo MCP Plus
+Settings -> Odoo MCP
 ```
 
 The page shows the MCP endpoint:
 
 ```text
-https://your-odoo-domain.example/odoo_mcp_plus/mcp
+https://your-odoo-domain.example/odoo_mcp/mcp
 ```
 
 It also exposes these options:
@@ -116,10 +117,10 @@ It also exposes these options:
 Use the MCP endpoint shown in Odoo Settings:
 
 ```text
-https://your-odoo-domain.example/odoo_mcp_plus/mcp
+https://your-odoo-domain.example/odoo_mcp/mcp
 ```
 
-Odoo MCP Plus exposes OAuth discovery metadata so autosensing clients can find:
+Odoo MCP exposes OAuth discovery metadata so autosensing clients can find:
 
 - Protected resource metadata.
 - Authorization server metadata.
@@ -128,6 +129,53 @@ Odoo MCP Plus exposes OAuth discovery metadata so autosensing clients can find:
 - Token endpoint.
 
 When a user connects, Odoo displays an authorization page. Internal Odoo users can authorize after login. The resulting access token is stored in Odoo as an `odoo.mcp.oauth.token` record and is bound to the Odoo user.
+
+### ChatGPT
+
+ChatGPT custom MCP connectors currently require Developer Mode/custom connector setup. Use ChatGPT on the web.
+
+1. Make sure your Odoo endpoint is public HTTPS:
+
+   ```text
+   https://your-odoo-domain.example/odoo_mcp/mcp
+   ```
+
+2. In ChatGPT, enable Developer Mode.
+   - Business / Enterprise / Edu: an admin or owner may need to enable custom MCP connector creation in workspace settings first.
+   - Plus / Pro: Developer Mode may need to be enabled in personal ChatGPT settings before custom MCP connectors are available.
+
+3. Create a new custom MCP connector/app.
+   - Name: `Odoo MCP`
+   - Server URL: `https://your-odoo-domain.example/odoo_mcp/mcp`
+   - Authentication: OAuth / auto-discovered OAuth
+
+4. Connect the app. ChatGPT should discover Odoo MCP's OAuth metadata, open the Odoo login/authorization page, and then show the connector with a `Dev` label while it is still private.
+
+5. After connecting, use **Refresh actions** whenever you enable SQL, enable custom tools, publish a custom tool, or update the module.
+
+6. In the first chat, ask the model to run `get-ai-context`. If it returns the bootstrap protocol, follow it before asking business questions.
+
+### Gemini
+
+Gemini web/chat does not currently expose the same general custom MCP connector workflow as ChatGPT. For now, use Gemini CLI for Odoo MCP.
+
+Install and configure Gemini CLI, then add the remote HTTP MCP server:
+
+```bash
+gemini mcp add --transport http odoo-mcp https://your-odoo-domain.example/odoo_mcp/mcp
+```
+
+Gemini CLI supports OAuth discovery for remote HTTP/SSE MCP servers. On first use it should detect the Odoo authorization requirement, open the browser OAuth flow, and store the connection locally.
+
+Useful Gemini CLI checks:
+
+```bash
+gemini mcp list
+gemini
+/mcp
+```
+
+After the server is connected, start by asking Gemini to call `get-ai-context`. If the context is empty, use medium or high reasoning and let the bootstrap protocol create the first durable context with `set-ai-context`.
 
 ## Tool Overview
 
@@ -188,7 +236,7 @@ Returns matching record IDs.
 
 ### `odoo_search_read`
 
-Precise Odoo model search plus selected fields.
+Precise Odoo model search with selected fields.
 
 Input:
 
@@ -269,13 +317,13 @@ When enabled, these tools are advertised:
 Custom tool files live in the Odoo data directory:
 
 ```text
-<odoo data_dir>/odoo_mcp_plus_custom_tools/
+<odoo data_dir>/odoo_mcp_custom_tools/
 ```
 
 On many Debian-style installs this is:
 
 ```text
-/var/lib/odoo/.local/share/Odoo/odoo_mcp_plus_custom_tools/
+/var/lib/odoo/.local/share/Odoo/odoo_mcp_custom_tools/
 ```
 
 They are intentionally outside the installed addon directory so Odoo can write them without modifying packaged module code.
@@ -285,7 +333,7 @@ They are intentionally outside the installed addon directory so Odoo can write t
 Each custom tool is a Python file:
 
 ```python
-"""Draft custom MCP tool for Odoo MCP Plus."""
+"""Draft custom MCP tool for Odoo MCP."""
 
 EXPOSED = False
 
@@ -336,7 +384,7 @@ Custom tools are executable Python inside Odoo. Keep this feature disabled excep
 
 ## AI Context Workflow
 
-Odoo MCP Plus stores one durable AI context string in `ir.config_parameter`.
+Odoo MCP stores one durable AI context string in `ir.config_parameter`.
 
 Recommended first-run flow for an AI:
 
@@ -359,7 +407,7 @@ Good context should include:
 
 ## Security Model
 
-Odoo MCP Plus is designed around Odoo's own security model.
+Odoo MCP is designed around Odoo's own security model.
 
 - OAuth tokens are stored as `odoo.mcp.oauth.token`.
 - Tokens are hashed at rest.
@@ -427,21 +475,21 @@ Remember:
 Deploy local changes to a live Odoo addons path:
 
 ```bash
-cp -a odoo_mcp_plus/. /usr/lib/python3/dist-packages/odoo/addons/odoo_mcp_plus/
+cp -a odoo_mcp/. /usr/lib/python3/dist-packages/odoo/addons/odoo_mcp/
 systemctl restart odoo
 ```
 
 Upgrade the module when fields/views/security metadata change:
 
 ```bash
-sudo -u odoo odoo -c /etc/odoo/odoo.conf -d YOUR_DATABASE -u odoo_mcp_plus --stop-after-init --no-http
+sudo -u odoo odoo -c /etc/odoo/odoo.conf -d YOUR_DATABASE -u odoo_mcp --stop-after-init --no-http
 systemctl restart odoo
 ```
 
 Run a quick syntax check:
 
 ```bash
-python3 -m py_compile odoo_mcp_plus/controllers/mcp.py
+python3 -m py_compile odoo_mcp/controllers/mcp.py
 ```
 
 ## License

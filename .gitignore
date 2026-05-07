@@ -1,7 +1,7 @@
 # Local helper scripts
 upush.sh
 restart-odoo.sh
-odoo_mcp_plus_ai_context.backup.txt
+odoo_mcp_ai_context.backup.txt
 
 # Legacy Node implementation kept locally only
 odoo-mcp-node/
