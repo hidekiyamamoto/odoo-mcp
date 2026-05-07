@@ -1,7 +1,7 @@
 {
     "name": "Perfect Odoo MCP",
     "summary": "Odoo-native MCP server with OAuth, ACL-aware tools, SQL, and custom tool development.",
-    "version": "17.0.1.0.0",
+    "version": "16.0.1.0.0",
     "category": "Technical",
     "author": "Hideki Andrea Yamamoto, Davide Bottazzo",
     "website": "https://github.com/hidekiyamamoto/odoo-mcp",
