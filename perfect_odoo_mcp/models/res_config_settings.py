@@ -3,6 +3,8 @@ from odoo import fields, models
 from ..const import (
     CUSTOM_TOOLS_ENABLED_PARAM,
     MCP_PATH,
+    MODULE_EDITING_ENABLED_PARAM,
+    MODULE_EDITING_MODULES_PARAM,
     SQL_DATABASE_PARAM,
     SQL_ENABLED_PARAM,
     SQL_HOST_PARAM,
@@ -29,6 +31,17 @@ class ResConfigSettings(models.TransientModel):
         string="Allow Custom Tools Creation",
         config_parameter=CUSTOM_TOOLS_ENABLED_PARAM,
         help="Expose MCP tools that can read, write, reload, and test custom Python MCP tools.",
+    )
+    perfect_odoo_mcp_module_editing_enabled = fields.Boolean(
+        string="Enable Modules Editing",
+        config_parameter=MODULE_EDITING_ENABLED_PARAM,
+        help="Expose the module file editor MCP tool for the allowlisted module folders.",
+    )
+    perfect_odoo_mcp_module_editing_modules = fields.Text(
+        string="Editable Modules",
+        config_parameter=MODULE_EDITING_MODULES_PARAM,
+        default="[]",
+        help='JSON list of editable modules, for example [{"name": "my_module", "folder": "/mnt/extra-addons/my_module"}].',
     )
     perfect_odoo_mcp_sql_enabled = fields.Boolean(
         string="Enable Direct Database Access",

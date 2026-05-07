@@ -37,11 +37,13 @@ from ..mcp_defs import (
     CUSTOM_TOOLS_DIR,
     CUSTOM_TOOL_MANAGER_TOOLS,
     EMPTY_AI_CONTEXT_BOOTSTRAP,
+    MODULE_EDITOR_TOOL,
     SEARCH_MODEL_NAMES,
     SEARCH_MODEL_PREFIXES,
     SQL_TOOL,
     TOOLS,
 )
+from ..module_editor import module_edit, module_editing_enabled
 from ..sql_tools import execute_direct_sql
 
 
@@ -154,6 +156,8 @@ def _available_tools():
     if custom_tools_enabled():
         tools.extend(CUSTOM_TOOL_MANAGER_TOOLS)
         tools.extend(custom_tools_cache()["exposed_tools"])
+    if module_editing_enabled():
+        tools.append(MODULE_EDITOR_TOOL)
     return tools
 
 
@@ -731,6 +735,9 @@ def _call_tool(name, arguments, user_env):
 
     if name == "odoo_sql":
         return execute_direct_sql(arguments)
+
+    if name == "odoo_module_edit":
+        return module_edit(arguments)
 
     if name == "custom_tools_list":
         return custom_tools_list()
