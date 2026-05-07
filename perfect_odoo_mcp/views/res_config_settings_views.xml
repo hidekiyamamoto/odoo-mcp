@@ -34,6 +34,22 @@
                         </setting>
                     </block>
 
+                    <block title="Module Editing" name="perfect_odoo_mcp_module_editing">
+                        <setting id="perfect_odoo_mcp_module_editing_enabled" string="Enable Modules Editing" help="Expose one MCP tool that can list, read, write, and delete files inside explicitly allowlisted module folders.">
+                            <field name="perfect_odoo_mcp_module_editing_enabled"/>
+                            <div class="text-warning mt8" invisible="not perfect_odoo_mcp_module_editing_enabled">
+                                Module editing changes Python/XML/data files on disk. Keep this disabled unless you are actively reviewing code edits.
+                            </div>
+                        </setting>
+                        <setting id="perfect_odoo_mcp_module_editing_modules" string="Editable Modules" help="JSON allowlist of module names and folders available to the module editor tool. Folders may be absolute paths or module folders relative to an Odoo addons path.">
+                            <div class="content-group">
+                                <div class="mt16">
+                                    <field name="perfect_odoo_mcp_module_editing_modules" nolabel="1" placeholder='[{"name": "my_module", "folder": "/mnt/extra-addons/my_module"}]'/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
                     <block title="Database Access" name="perfect_odoo_mcp_database_access">
                         <setting id="perfect_odoo_mcp_sql_enabled" string="Direct SQL" help="Expose a direct PostgreSQL MCP tool. Keep this disabled unless you explicitly need database-level access.">
                             <field name="perfect_odoo_mcp_sql_enabled"/>
