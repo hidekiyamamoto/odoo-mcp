@@ -37,7 +37,7 @@ class ResConfigSettings(models.TransientModel):
         config_parameter=MODULE_EDITING_ENABLED_PARAM,
         help="Expose the module file editor MCP tool for the allowlisted module folders.",
     )
-    perfect_odoo_mcp_module_editing_modules = fields.Text(
+    perfect_odoo_mcp_module_editing_modules = fields.Char(
         string="Editable Modules",
         config_parameter=MODULE_EDITING_MODULES_PARAM,
         default="[]",
