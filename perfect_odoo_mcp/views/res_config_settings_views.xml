@@ -27,52 +27,52 @@
             <xpath expr="//form" position="inside">
                 <app data-string="Perfect Odoo MCP" string="Perfect Odoo MCP" name="perfect_odoo_mcp" id="perfect_odoo_mcp_settings">
                     <block title="MCP Server" name="perfect_odoo_mcp_mcp_server">
-                        <setting id="perfect_odoo_mcp_mcp_url" string="MCP Endpoint" help="Use this URL to connect an MCP client to this Odoo database.">
+                        <setting id="x_perfect_odoo_mcp_mcp_url" string="MCP Endpoint" help="Use this URL to connect an MCP client to this Odoo database.">
                             <div class="content-group">
                                 <div class="mt16">
-                                    <field name="perfect_odoo_mcp_mcp_url" readonly="1" nolabel="1" class="w-100"/>
+                                    <field name="x_perfect_odoo_mcp_mcp_url" readonly="1" nolabel="1" class="w-100"/>
                                 </div>
                             </div>
                         </setting>
-                        <setting id="perfect_odoo_mcp_custom_tools_enabled" string="Allow Custom Tools Creation" help="Expose MCP tools that let an authorized MCP client read, write, reload, and test custom Python MCP tools.">
-                            <field name="perfect_odoo_mcp_custom_tools_enabled"/>
-                            <div class="text-warning mt8" invisible="not perfect_odoo_mcp_custom_tools_enabled">
+                        <setting id="x_perfect_odoo_mcp_custom_tools_enabled" string="Allow Custom Tools Creation" help="Expose MCP tools that let an authorized MCP client read, write, reload, and test custom Python MCP tools.">
+                            <field name="x_perfect_odoo_mcp_custom_tools_enabled"/>
+                            <div class="text-warning mt8" invisible="not x_perfect_odoo_mcp_custom_tools_enabled">
                                 Custom tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.
                             </div>
                         </setting>
                     </block>
 
                     <block title="Database Access" name="perfect_odoo_mcp_database_access">
-                        <setting id="perfect_odoo_mcp_sql_enabled" string="Direct SQL" help="Expose a direct PostgreSQL MCP tool. Keep this disabled unless you explicitly need database-level access.">
-                            <field name="perfect_odoo_mcp_sql_enabled"/>
-                            <div class="text-warning mt8" invisible="not perfect_odoo_mcp_sql_enabled">
+                        <setting id="x_perfect_odoo_mcp_sql_enabled" string="Direct SQL" help="Expose a direct PostgreSQL MCP tool. Keep this disabled unless you explicitly need database-level access.">
+                            <field name="x_perfect_odoo_mcp_sql_enabled"/>
+                            <div class="text-warning mt8" invisible="not x_perfect_odoo_mcp_sql_enabled">
                                 Direct SQL access bypasses Odoo ORM protections. Use a restricted PostgreSQL user whenever possible.
                             </div>
                         </setting>
-                        <setting id="perfect_odoo_mcp_sql_readonly" string="Readonly SQL" help="Refuse write-like SQL operations and open PostgreSQL sessions in readonly mode." invisible="not perfect_odoo_mcp_sql_enabled">
-                            <field name="perfect_odoo_mcp_sql_readonly"/>
+                        <setting id="x_perfect_odoo_mcp_sql_readonly" string="Readonly SQL" help="Refuse write-like SQL operations and open PostgreSQL sessions in readonly mode." invisible="not x_perfect_odoo_mcp_sql_enabled">
+                            <field name="x_perfect_odoo_mcp_sql_readonly"/>
                         </setting>
-                        <setting id="perfect_odoo_mcp_sql_connection" string="SQL Connection" help="PostgreSQL connection used by the direct SQL MCP tool." invisible="not perfect_odoo_mcp_sql_enabled">
+                        <setting id="perfect_odoo_mcp_sql_connection" string="SQL Connection" help="PostgreSQL connection used by the direct SQL MCP tool." invisible="not x_perfect_odoo_mcp_sql_enabled">
                             <div class="content-group">
                                 <div class="row mt16">
-                                    <label for="perfect_odoo_mcp_sql_host" class="col-lg-3 o_light_label"/>
-                                    <field name="perfect_odoo_mcp_sql_host" placeholder="127.0.0.1"/>
+                                    <label for="x_perfect_odoo_mcp_sql_host" class="col-lg-3 o_light_label"/>
+                                    <field name="x_perfect_odoo_mcp_sql_host" placeholder="127.0.0.1"/>
                                 </div>
                                 <div class="row mt8">
-                                    <label for="perfect_odoo_mcp_sql_port" class="col-lg-3 o_light_label"/>
-                                    <field name="perfect_odoo_mcp_sql_port" placeholder="5432"/>
+                                    <label for="x_perfect_odoo_mcp_sql_port" class="col-lg-3 o_light_label"/>
+                                    <field name="x_perfect_odoo_mcp_sql_port" placeholder="5432"/>
                                 </div>
                                 <div class="row mt8">
-                                    <label for="perfect_odoo_mcp_sql_database" class="col-lg-3 o_light_label"/>
-                                    <field name="perfect_odoo_mcp_sql_database"/>
+                                    <label for="x_perfect_odoo_mcp_sql_database" class="col-lg-3 o_light_label"/>
+                                    <field name="x_perfect_odoo_mcp_sql_database"/>
                                 </div>
                                 <div class="row mt8">
-                                    <label for="perfect_odoo_mcp_sql_user" class="col-lg-3 o_light_label"/>
-                                    <field name="perfect_odoo_mcp_sql_user"/>
+                                    <label for="x_perfect_odoo_mcp_sql_user" class="col-lg-3 o_light_label"/>
+                                    <field name="x_perfect_odoo_mcp_sql_user"/>
                                 </div>
                                 <div class="row mt8">
-                                    <label for="perfect_odoo_mcp_sql_password" class="col-lg-3 o_light_label"/>
-                                    <field name="perfect_odoo_mcp_sql_password" password="True"/>
+                                    <label for="x_perfect_odoo_mcp_sql_password" class="col-lg-3 o_light_label"/>
+                                    <field name="x_perfect_odoo_mcp_sql_password" password="True"/>
                                 </div>
                             </div>
                         </setting>
