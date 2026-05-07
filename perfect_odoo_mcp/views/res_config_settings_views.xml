@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <delete model="ir.ui.view"
-            search="[('arch_db', 'ilike', 'name=&quot;perfect_odoo_mcp_')]"/>
+            search="['|', '|', ('arch_db', 'ilike', 'name=&quot;perfect_odoo_mcp_'), ('arch_db', 'ilike', 'data-key=&quot;perfect_odoo_mcp&quot;'), ('arch_db', 'ilike', 'name=&quot;perfect_odoo_mcp&quot;')]"/>
     <delete model="ir.actions.act_url"
             search="[('url', '=', '/perfect_odoo_mcp/settings')]"/>
     <delete model="ir.attachment"
@@ -27,7 +27,7 @@
         <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[hasclass('settings')]" position="inside">
-                <div class="app_settings_block" data-string="Perfect Odoo MCP" string="Perfect Odoo MCP" data-key="perfect_odoo_mcp">
+                <div class="app_settings_block" data-string="Perfect Odoo MCP" string="Perfect Odoo MCP" data-key="perfect_odoo_mcp_settings_app">
                     <h2>MCP Server</h2>
                     <div class="row mt16 o_settings_container">
                         <div class="col-12 col-lg-6 o_setting_box" id="x_perfect_odoo_mcp_mcp_url">
