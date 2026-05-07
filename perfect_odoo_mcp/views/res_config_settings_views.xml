@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <delete model="ir.ui.view"
+            search="[('arch_db', 'ilike', 'name=&quot;perfect_odoo_mcp_')]"/>
     <delete model="ir.actions.act_url"
             search="[('url', '=', '/perfect_odoo_mcp/settings')]"/>
     <delete model="ir.attachment"
