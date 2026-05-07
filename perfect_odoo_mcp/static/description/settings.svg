@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1304" height="632" viewBox="0 0 1304 632" role="img" aria-labelledby="title desc">
+  <title id="title">Perfect Odoo MCP settings after installation</title>
+  <desc id="desc">Odoo settings panel showing the MCP endpoint, custom tools creation option, and direct SQL access option.</desc>
+  <rect width="1304" height="632" fill="#fff"/>
+  <rect y="0" width="1304" height="53" fill="#e5e7eb"/>
+  <text x="34" y="34" fill="#0f172a" font-family="Arial, sans-serif" font-size="22" font-weight="700">MCP Server</text>
+
+  <line x1="86" y1="86" x2="86" y2="197" stroke="#d9dee6"/>
+  <text x="103" y="107" fill="#1f2937" font-family="Arial, sans-serif" font-size="18" font-weight="700">MCP Endpoint</text>
+  <text x="103" y="134" fill="#64748b" font-family="Arial, sans-serif" font-size="18">Use this URL to connect an MCP client to this Odoo database.</text>
+  <text x="103" y="183" fill="#1e293b" font-family="Arial, sans-serif" font-size="20">https://odoo.18montenapoleone.it/perfect_odoo_mcp/mcp</text>
+
+  <rect x="684" y="90" width="18" height="18" rx="4" fill="#77699b"/>
+  <path d="M689 99.5l3.2 3.2 5.9-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="716" y1="86" x2="716" y2="247" stroke="#d9dee6"/>
+  <text x="732" y="107" fill="#1f2937" font-family="Arial, sans-serif" font-size="18" font-weight="700">Allow Custom Tools Creation</text>
+  <text x="732" y="134" fill="#64748b" font-family="Arial, sans-serif" font-size="18">Expose MCP tools that let an authorized MCP client read, write,</text>
+  <text x="732" y="162" fill="#64748b" font-family="Arial, sans-serif" font-size="18">reload, and test custom Python MCP tools.</text>
+  <text x="732" y="211" fill="#a16207" font-family="Arial, sans-serif" font-size="18">Custom tools are executable Python files. Keep this disabled</text>
+  <text x="732" y="239" fill="#a16207" font-family="Arial, sans-serif" font-size="18">unless you are actively creating or reviewing tools.</text>
+
+  <rect y="290" width="1304" height="53" fill="#e5e7eb"/>
+  <text x="34" y="324" fill="#0f172a" font-family="Arial, sans-serif" font-size="22" font-weight="700">Database Access</text>
+
+  <rect x="54" y="380" width="18" height="18" rx="3" fill="#fff" stroke="#b8c0cc"/>
+  <line x1="86" y1="377" x2="86" y2="459" stroke="#d9dee6"/>
+  <text x="103" y="396" fill="#1f2937" font-family="Arial, sans-serif" font-size="18" font-weight="700">Direct SQL</text>
+  <text x="103" y="424" fill="#64748b" font-family="Arial, sans-serif" font-size="18">Expose a direct PostgreSQL MCP tool. Keep this disabled unless</text>
+  <text x="103" y="452" fill="#64748b" font-family="Arial, sans-serif" font-size="18">you explicitly need database-level access.</text>
+</svg>
