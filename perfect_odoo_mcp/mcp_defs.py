@@ -385,6 +385,49 @@ SQL_TOOL = {
     },
 }
 
+MODULE_EDITOR_TOOL = {
+    "name": "odoo_module_edit",
+    "title": "Odoo Module File Editor",
+    "description": (
+        "List, read, write, and delete files inside module folders explicitly allowlisted "
+        "in Perfect Odoo MCP settings. This tool is only advertised when module editing is enabled."
+    ),
+    "inputSchema": {
+        "type": "object",
+        "properties": {
+            "operation": {
+                "type": "string",
+                "enum": ["list_modules", "list_files", "read_file", "write_file", "delete_file"],
+                "description": "File operation to perform.",
+            },
+            "module": {
+                "type": "string",
+                "description": "Allowlisted module name. Required except for list_modules.",
+            },
+            "path": {
+                "type": "string",
+                "description": "Path relative to the allowlisted module folder. Required for file operations.",
+            },
+            "content": {
+                "type": "string",
+                "description": "Full replacement file content. Required for write_file.",
+            },
+            "recursive": {
+                "type": "boolean",
+                "description": "When listing files, include subdirectories recursively.",
+            },
+            "maxBytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000,
+                "description": "Maximum bytes to read from a file.",
+            },
+        },
+        "required": ["operation"],
+        "additionalProperties": False,
+    },
+}
+
 CUSTOM_TOOL_MANAGER_TOOLS = [
     {
         "name": "custom_tools_list",
@@ -465,5 +508,4 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
         },
     },
 ]
-
 
