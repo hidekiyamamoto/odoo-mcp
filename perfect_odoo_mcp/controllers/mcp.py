@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import importlib.util
 import json
 import logging
 import os
@@ -13,10 +12,19 @@ from odoo import api, http, release
 from odoo.fields import Datetime
 from odoo.http import Response, request
 
+from ..custom_tools import (
+    custom_tool_read,
+    custom_tool_result,
+    custom_tool_write,
+    custom_tools_cache,
+    custom_tools_enabled,
+    custom_tools_list,
+    custom_tools_reload,
+    test_custom_tool,
+)
 from ..const import (
     AI_CONTEXT_PARAM,
     AUTH_CODE_PARAM_PREFIX,
-    CUSTOM_TOOLS_ENABLED_PARAM,
     MCP_PATH,
     MODULE_NAME,
     OAUTH_AUTHORIZE_PATH,
@@ -31,11 +39,8 @@ from ..const import (
     SQL_USER_PARAM,
 )
 from ..mcp_defs import (
-    CUSTOM_TOOL_FILE_PATTERN,
-    CUSTOM_TOOL_MANAGER_TOOLS,
-    CUSTOM_TOOL_TEMPLATE,
-    CUSTOM_TOOLS_CACHE,
     CUSTOM_TOOLS_DIR,
+    CUSTOM_TOOL_MANAGER_TOOLS,
     EMPTY_AI_CONTEXT_BOOTSTRAP,
     SEARCH_MODEL_NAMES,
     SEARCH_MODEL_PREFIXES,
@@ -145,10 +150,6 @@ def _sql_readonly():
     return _param_bool(SQL_READONLY_PARAM, default=True)
 
 
-def _custom_tools_enabled():
-    return _param_bool(CUSTOM_TOOLS_ENABLED_PARAM)
-
-
 def _available_tools():
     tools = list(TOOLS)
     if _sql_enabled():
@@ -156,9 +157,9 @@ def _available_tools():
         if _sql_readonly():
             sql_tool["annotations"] = {"readOnlyHint": True}
         tools.append(sql_tool)
-    if _custom_tools_enabled():
+    if custom_tools_enabled():
         tools.extend(CUSTOM_TOOL_MANAGER_TOOLS)
-        tools.extend(_custom_tools_cache()["exposed_tools"])
+        tools.extend(custom_tools_cache()["exposed_tools"])
     return tools
 
 
@@ -670,8 +671,8 @@ def _installed_modules_info(user_env):
                 "toolName": "odoo_sql" if _sql_enabled() else None,
             },
             "customTools": {
-                "enabled": _custom_tools_enabled(),
-                "directory": CUSTOM_TOOLS_DIR if _custom_tools_enabled() else None,
+                "enabled": custom_tools_enabled(),
+                "directory": CUSTOM_TOOLS_DIR if custom_tools_enabled() else None,
             },
         },
         "request": {
@@ -703,200 +704,6 @@ def _installed_modules_info(user_env):
             "items": module_items,
         },
     }
-
-
-def _ensure_custom_tools_enabled():
-    if not _custom_tools_enabled():
-        raise ValueError("Custom tools creation is not enabled in Perfect Odoo MCP settings.")
-
-
-def _ensure_custom_tools_dir():
-    os.makedirs(CUSTOM_TOOLS_DIR, exist_ok=True)
-
-
-def _custom_tool_path(filename):
-    if not isinstance(filename, str) or not CUSTOM_TOOL_FILE_PATTERN.match(filename):
-        raise ValueError("filename must look like my_tool.py and contain only letters, numbers, and underscores.")
-    _ensure_custom_tools_dir()
-    path = os.path.abspath(os.path.join(CUSTOM_TOOLS_DIR, filename))
-    if not path.startswith(CUSTOM_TOOLS_DIR + os.sep):
-        raise ValueError("Invalid custom tool path.")
-    return path
-
-
-def _custom_tool_files():
-    _ensure_custom_tools_dir()
-    return sorted(filename for filename in os.listdir(CUSTOM_TOOLS_DIR) if CUSTOM_TOOL_FILE_PATTERN.match(filename))
-
-
-def _load_custom_tool_file(filename):
-    path = _custom_tool_path(filename)
-    if not os.path.isfile(path):
-        raise FileNotFoundError(f"Custom tool file not found: {filename}")
-
-    module_name = f"perfect_odoo_mcp_custom_{filename[:-3]}_{hashlib.sha1(path.encode()).hexdigest()[:8]}"
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    if not spec or not spec.loader:
-        raise ValueError(f"Could not load custom tool file: {filename}")
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    tool = getattr(module, "TOOL", None)
-    call = getattr(module, "call", None)
-    exposed = bool(getattr(module, "EXPOSED", False))
-
-    if not isinstance(tool, dict):
-        raise ValueError("Custom tool must define TOOL as a dictionary.")
-    if not isinstance(tool.get("name"), str) or not tool["name"]:
-        raise ValueError("Custom tool TOOL must include a non-empty string name.")
-    if not isinstance(tool.get("inputSchema"), dict):
-        raise ValueError("Custom tool TOOL must include an inputSchema dictionary.")
-    if not callable(call):
-        raise ValueError("Custom tool must define callable function call(arguments, env, request).")
-
-    return {
-        "filename": filename,
-        "path": path,
-        "module": module,
-        "tool": tool,
-        "call": call,
-        "exposed": exposed,
-    }
-
-
-def _load_custom_tools():
-    loaded = {}
-    exposed_tools = []
-    files = []
-    errors = []
-    builtin_names = {tool["name"] for tool in TOOLS}
-    builtin_names.update(tool["name"] for tool in CUSTOM_TOOL_MANAGER_TOOLS)
-    builtin_names.add(SQL_TOOL["name"])
-
-    for filename in _custom_tool_files():
-        files.append(filename)
-        try:
-            item = _load_custom_tool_file(filename)
-            name = item["tool"]["name"]
-            if name in builtin_names:
-                raise ValueError(f"Custom tool name collides with a built-in tool: {name}")
-            if name in loaded:
-                raise ValueError(f"Duplicate custom tool name: {name}")
-            loaded[name] = item
-            if item["exposed"]:
-                exposed_tools.append(item["tool"])
-        except Exception as error:
-            _logger.exception("Custom tool load failed for %s", filename)
-            errors.append({"filename": filename, "error": str(error)})
-
-    return {
-        "tools": loaded,
-        "exposed_tools": exposed_tools,
-        "files": files,
-        "errors": errors,
-    }
-
-
-def _custom_tools_cache(force=False):
-    global CUSTOM_TOOLS_CACHE
-    if force or CUSTOM_TOOLS_CACHE is None:
-        CUSTOM_TOOLS_CACHE = _load_custom_tools()
-    return CUSTOM_TOOLS_CACHE
-
-
-def _custom_tool_result(value):
-    if isinstance(value, dict) and ("content" in value or value.get("isError")):
-        return value
-    if isinstance(value, str):
-        return _tool_text(value)
-    return _tool_json(value)
-
-
-def _custom_tools_list():
-    _ensure_custom_tools_enabled()
-    cache = _custom_tools_cache(force=True)
-    items = []
-    for filename in cache["files"]:
-        try:
-            item = _load_custom_tool_file(filename)
-            items.append(
-                {
-                    "filename": filename,
-                    "name": item["tool"]["name"],
-                    "title": item["tool"].get("title"),
-                    "exposed": item["exposed"],
-                }
-            )
-        except Exception as error:
-            items.append({"filename": filename, "error": str(error), "exposed": False})
-    return _tool_json(
-        {
-            "directory": CUSTOM_TOOLS_DIR,
-            "files": items,
-            "loadErrors": cache["errors"],
-            "template": CUSTOM_TOOL_TEMPLATE,
-        }
-    )
-
-
-def _custom_tool_read(arguments):
-    _ensure_custom_tools_enabled()
-    filename = arguments.get("filename")
-    path = _custom_tool_path(filename)
-    if not os.path.isfile(path):
-        raise FileNotFoundError(f"Custom tool file not found: {filename}")
-    with open(path, encoding="utf-8") as handle:
-        return _tool_text(handle.read())
-
-
-def _custom_tool_write(arguments):
-    _ensure_custom_tools_enabled()
-    filename = arguments.get("filename")
-    code = arguments.get("code")
-    if not isinstance(code, str):
-        raise ValueError("code must be a string.")
-    path = _custom_tool_path(filename)
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write(code)
-        if not code.endswith("\n"):
-            handle.write("\n")
-    _custom_tools_cache(force=True)
-    return _tool_json({"filename": filename, "path": path, "status": "written"})
-
-
-def _custom_tools_reload():
-    _ensure_custom_tools_enabled()
-    cache = _custom_tools_cache(force=True)
-    return _tool_json(
-        {
-            "directory": CUSTOM_TOOLS_DIR,
-            "fileCount": len(cache["files"]),
-            "exposedTools": [tool["name"] for tool in cache["exposed_tools"]],
-            "errors": cache["errors"],
-        }
-    )
-
-
-def _test_custom_tool(arguments, user_env):
-    _ensure_custom_tools_enabled()
-    filename = arguments.get("filename")
-    name = arguments.get("name")
-    call_arguments = arguments.get("arguments") or {}
-    if not isinstance(call_arguments, dict):
-        raise ValueError("arguments must be an object.")
-
-    if filename:
-        item = _load_custom_tool_file(filename)
-    elif name:
-        item = _custom_tools_cache(force=True)["tools"].get(name)
-        if not item:
-            raise ValueError(f"Custom tool not found: {name}")
-    else:
-        raise ValueError("Provide filename or name.")
-
-    return _custom_tool_result(item["call"](call_arguments, user_env, request))
-
 
 def _sql_config():
     params = request.env["ir.config_parameter"].sudo()
@@ -1036,23 +843,23 @@ def _call_tool(name, arguments, user_env):
         return _execute_direct_sql(arguments)
 
     if name == "custom_tools_list":
-        return _custom_tools_list()
+        return custom_tools_list()
 
     if name == "custom_tool_read":
-        return _custom_tool_read(arguments)
+        return custom_tool_read(arguments)
 
     if name == "custom_tool_write":
-        return _custom_tool_write(arguments)
+        return custom_tool_write(arguments)
 
     if name == "custom_tools_reload":
-        return _custom_tools_reload()
+        return custom_tools_reload()
 
     if name == "call-custom":
-        return _test_custom_tool(arguments, user_env)
+        return test_custom_tool(arguments, user_env)
 
-    custom_item = _custom_tools_cache()["tools"].get(name) if _custom_tools_enabled() else None
+    custom_item = custom_tools_cache()["tools"].get(name) if custom_tools_enabled() else None
     if custom_item and custom_item["exposed"]:
-        return _custom_tool_result(custom_item["call"](arguments, user_env, request))
+        return custom_tool_result(custom_item["call"](arguments, user_env, request))
 
     if name == "get-ai-context":
         text = request.env["ir.config_parameter"].sudo().get_param(AI_CONTEXT_PARAM, "")
