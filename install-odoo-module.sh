@@ -5,6 +5,7 @@ REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
 MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
 WORKDIR=""
+FORCE=0
 DATABASE=""
 ODOO_BIN=""
 ADDONS_DIR=""
@@ -24,11 +25,13 @@ Options:
   --addons-dir PATH       Target addons directory. Defaults to Odoo's core addons directory.
   --config PATH           Odoo config file to inspect for addons_path fallback candidates.
   --branch BRANCH         Git branch to clone. Defaults to the detected Odoo major version, e.g. 17.0.
+  -f, --force             Remove an existing perfect_odoo_mcp/odoo_mcp directory before copying.
   -h, --help              Show this help.
 
 Examples:
   ./install-odoo-module.sh
   ./install-odoo-module.sh -d my_database
+  /bin/bash ./install-odoo-module.sh -f -d my_database
   ./install-odoo-module.sh --addons-dir /mnt/extra-addons -d my_database
 EOF
 }
@@ -83,6 +86,28 @@ cleanup() {
 }
 trap cleanup EXIT
 
+handle_existing_addon() {
+    local target_dir="$1"
+    local label="$2"
+
+    [[ -e "$target_dir" ]] || return 0
+    if [[ "$FORCE" -eq 1 ]]; then
+        echo "$label found. Removing $target_dir because --force was provided."
+        rm -rf "$target_dir"
+        return 0
+    fi
+
+    cat >&2 <<EOF
+ERROR: $label already exists at:
+  $target_dir
+
+The installer will not overwrite or back up existing addon directories automatically.
+Remove it yourself, or rerun with --force to delete it before installing:
+  /bin/bash ./install-odoo-module.sh --force -d ${DATABASE:-YOUR_DATABASE}
+EOF
+    exit 1
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--database)
@@ -109,6 +134,10 @@ while [[ $# -gt 0 ]]; do
             BRANCH="${2:-}"
             [[ -n "$BRANCH" ]] || fail "Missing value for $1"
             shift 2
+            ;;
+        -f|--force)
+            FORCE=1
+            shift
             ;;
         -h|--help)
             usage
@@ -295,19 +324,10 @@ fi
 [[ -d "$CLONE_DIR/$MODULE_NAME" ]] || fail "The cloned repository does not contain $MODULE_NAME."
 
 TARGET_DIR="$ADDONS_DIR/$MODULE_NAME"
-if [[ -e "$TARGET_DIR" ]]; then
-    BACKUP_DIR="${TARGET_DIR}.backup.$(date +%Y%m%d%H%M%S)"
-    echo "Existing module found. Moving it to $BACKUP_DIR"
-    mv "$TARGET_DIR" "$BACKUP_DIR"
-fi
+handle_existing_addon "$TARGET_DIR" "Existing module"
 
 for LEGACY_MODULE_NAME in "${LEGACY_MODULE_NAMES[@]}"; do
-    LEGACY_TARGET_DIR="$ADDONS_DIR/$LEGACY_MODULE_NAME"
-    if [[ -e "$LEGACY_TARGET_DIR" ]]; then
-        LEGACY_BACKUP_DIR="${LEGACY_TARGET_DIR}.backup.$(date +%Y%m%d%H%M%S)"
-        echo "Legacy module directory found. Moving $LEGACY_TARGET_DIR to $LEGACY_BACKUP_DIR"
-        mv "$LEGACY_TARGET_DIR" "$LEGACY_BACKUP_DIR"
-    fi
+    handle_existing_addon "$ADDONS_DIR/$LEGACY_MODULE_NAME" "Legacy module directory"
 done
 
 cp -a "$CLONE_DIR/$MODULE_NAME" "$TARGET_DIR"
