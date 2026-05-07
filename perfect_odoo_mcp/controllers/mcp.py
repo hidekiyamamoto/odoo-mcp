@@ -655,6 +655,18 @@ def _is_internal_user():
     return bool(request.env.user and request.env.user.has_group("base.group_user"))
 
 
+def _is_public_user():
+    user = request.env.user
+    if not user:
+        return True
+
+    is_public = getattr(user, "_is_public", None)
+    if callable(is_public):
+        return bool(is_public())
+
+    return not bool(getattr(request, "session", None) and request.session.uid)
+
+
 def _escape_html(value):
     return (
         str(value)
@@ -1664,7 +1676,7 @@ class OdooMcpPlusController(http.Controller):
                     },
                     "serverInfo": {
                         "name": "perfect-odoo-mcp",
-                        "version": "17.0.1.0.0",
+                        "version": "14.0.1.0.0",
                     },
                 },
             )
@@ -1742,7 +1754,7 @@ class OdooMcpPlusController(http.Controller):
         methods=["GET", "POST"],
     )
     def oauth_authorize(self, **kwargs):
-        if request.env.user._is_public():
+        if _is_public_user():
             return _html_response(_internal_required_page(), status=401)
 
         if not _is_internal_user():
