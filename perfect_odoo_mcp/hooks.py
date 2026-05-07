@@ -244,7 +244,7 @@ def _create_settings_view(env):
             "type": "form",
             "model": "res.config.settings",
             "inherit_id": parent.id,
-            "arch_base": arch,
+            "arch": arch,
         }
     )
 
