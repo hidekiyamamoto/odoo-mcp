@@ -15,31 +15,34 @@ from odoo.fields import Datetime
 from odoo.http import Response, request
 from odoo.tools import config as odoo_config
 
+from ..const import (
+    AI_CONTEXT_PARAM,
+    AUTH_CODE_PARAM_PREFIX,
+    CUSTOM_TOOLS_ENABLED_PARAM,
+    MCP_PATH,
+    MODULE_NAME,
+    OAUTH_AUTHORIZE_PATH,
+    OAUTH_REGISTER_PATH,
+    OAUTH_TOKEN_PATH,
+    SQL_DATABASE_PARAM,
+    SQL_ENABLED_PARAM,
+    SQL_HOST_PARAM,
+    SQL_PASSWORD_PARAM,
+    SQL_PORT_PARAM,
+    SQL_READONLY_PARAM,
+    SQL_USER_PARAM,
+)
+
 
 _logger = logging.getLogger(__name__)
 
-MCP_PATH = "/perfect_odoo_mcp/mcp"
-SETTINGS_PATH = "/perfect_odoo_mcp/settings"
 MCP_PROTOCOL_VERSION = "2024-11-05"
-OAUTH_AUTHORIZE_PATH = "/perfect_odoo_mcp/oauth/authorize"
-OAUTH_TOKEN_PATH = "/perfect_odoo_mcp/oauth/token"
-OAUTH_REGISTER_PATH = "/perfect_odoo_mcp/oauth/register"
 PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource"
 PROTECTED_RESOURCE_METADATA_SCOPED_PATH = f"{PROTECTED_RESOURCE_METADATA_PATH}{MCP_PATH}"
 AUTHORIZATION_SERVER_METADATA_PATH = "/.well-known/oauth-authorization-server"
 OAUTH_SCOPE = "odoo:read"
 AUTH_CODE_TTL_SECONDS = 5 * 60
 ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 8
-AUTH_CODE_PARAM_PREFIX = "perfect_odoo_mcp.oauth_code."
-AI_CONTEXT_PARAM = "perfect_odoo_mcp.ai_context"
-SQL_ENABLED_PARAM = "perfect_odoo_mcp.sql_enabled"
-SQL_READONLY_PARAM = "perfect_odoo_mcp.sql_readonly"
-SQL_HOST_PARAM = "perfect_odoo_mcp.sql_host"
-SQL_PORT_PARAM = "perfect_odoo_mcp.sql_port"
-SQL_DATABASE_PARAM = "perfect_odoo_mcp.sql_database"
-SQL_USER_PARAM = "perfect_odoo_mcp.sql_user"
-SQL_PASSWORD_PARAM = "perfect_odoo_mcp.sql_password"
-CUSTOM_TOOLS_ENABLED_PARAM = "perfect_odoo_mcp.custom_tools_enabled"
 EMPTY_AI_CONTEXT_BOOTSTRAP = """Perfect Odoo MCP context bootstrap
 ================================
 
@@ -574,6 +577,11 @@ def _param_bool(name, default=False):
     if value in (None, ""):
         return default
     return str(value).lower() in ("1", "true", "yes", "on")
+
+
+def _installed_module_version(env):
+    module = env["ir.module.module"].sudo().search([("name", "=", MODULE_NAME)], limit=1)
+    return module.installed_version or module.latest_version or "1.0.0"
 
 
 def _sql_enabled():
@@ -1600,129 +1608,7 @@ def _call_tool(name, arguments, user_env):
     raise ValueError(f"Unknown tool: {name}")
 
 
-def _checked(value):
-    return " checked" if value else ""
-
-
-def _settings_page(saved=False):
-    params = request.env["ir.config_parameter"].sudo()
-    endpoint = _absolute_url(MCP_PATH)
-    sql_enabled = _param_bool(SQL_ENABLED_PARAM)
-    sql_readonly = _param_bool(SQL_READONLY_PARAM, default=True)
-    custom_tools_enabled = _param_bool(CUSTOM_TOOLS_ENABLED_PARAM)
-    sql_host = params.get_param(SQL_HOST_PARAM) or "127.0.0.1"
-    sql_port = params.get_param(SQL_PORT_PARAM) or "5432"
-    sql_database = params.get_param(SQL_DATABASE_PARAM) or request.env.cr.dbname
-    sql_user = params.get_param(SQL_USER_PARAM) or ""
-    sql_password = params.get_param(SQL_PASSWORD_PARAM) or ""
-    saved_message = (
-        '<div class="alert">Settings saved.</div>'
-        if saved
-        else ""
-    )
-    return f"""<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Perfect Odoo MCP Settings</title>
-  <style>
-    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 0; color: #1f2937; background: #f8fafc; }}
-    main {{ max-width: 980px; margin: 0 auto; padding: 32px 24px 56px; }}
-    h1 {{ margin: 0 0 8px; font-size: 28px; }}
-    h2 {{ margin: 24px 0 14px; font-size: 20px; }}
-    .panel {{ background: #fff; border: 1px solid #dbe3ea; border-radius: 8px; padding: 22px; margin-top: 22px; }}
-    .row {{ margin-top: 18px; }}
-    label {{ display: block; font-weight: 700; margin-bottom: 6px; }}
-    .muted {{ color: #64748b; line-height: 1.45; }}
-    input[type="text"], input[type="number"], input[type="password"] {{ width: 100%; max-width: 620px; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; }}
-    code {{ display: inline-block; padding: 8px 10px; background: #f1f5f9; border: 1px solid #dbe3ea; border-radius: 6px; color: #0f172a; }}
-    button {{ margin-top: 24px; padding: 10px 16px; border: 0; border-radius: 6px; background: #714b67; color: white; font-weight: 700; cursor: pointer; }}
-    .warning {{ color: #a16207; margin-top: 8px; }}
-    .alert {{ margin-top: 18px; padding: 12px 14px; border-radius: 6px; background: #ecfdf5; color: #14532d; border: 1px solid #bbf7d0; }}
-  </style>
-</head>
-<body>
-  <main>
-    <h1>Perfect Odoo MCP</h1>
-    <p class="muted">Configure the MCP endpoint and optional capabilities for this Odoo database.</p>
-    {saved_message}
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="{_escape_html(request.csrf_token())}">
-      <div class="panel">
-        <h2>MCP Server</h2>
-        <div class="row">
-          <label>MCP Endpoint</label>
-          <code>{_escape_html(endpoint)}</code>
-          <div class="muted">Use this URL to connect an MCP client to this Odoo database.</div>
-        </div>
-        <div class="row">
-          <label><input type="checkbox" name="custom_tools_enabled" value="1"{_checked(custom_tools_enabled)}> Allow Custom Tools Creation</label>
-          <div class="muted">Expose tools that let an authorized MCP client read, write, reload, and test custom Python MCP tools.</div>
-          <div class="warning">Custom tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.</div>
-        </div>
-      </div>
-      <div class="panel">
-        <h2>Database Access</h2>
-        <div class="row">
-          <label><input type="checkbox" name="sql_enabled" value="1"{_checked(sql_enabled)}> Direct SQL</label>
-          <div class="muted">Expose a direct PostgreSQL MCP tool. Keep this disabled unless you explicitly need database-level access.</div>
-        </div>
-        <div class="row">
-          <label><input type="checkbox" name="sql_readonly" value="1"{_checked(sql_readonly)}> Readonly SQL</label>
-          <div class="muted">Refuse write-like SQL operations and open PostgreSQL sessions in readonly mode.</div>
-        </div>
-        <div class="row">
-          <label for="sql_host">SQL Host</label>
-          <input id="sql_host" name="sql_host" type="text" value="{_escape_html(sql_host)}" placeholder="127.0.0.1">
-        </div>
-        <div class="row">
-          <label for="sql_port">SQL Port</label>
-          <input id="sql_port" name="sql_port" type="number" value="{_escape_html(sql_port)}" placeholder="5432">
-        </div>
-        <div class="row">
-          <label for="sql_database">SQL Database</label>
-          <input id="sql_database" name="sql_database" type="text" value="{_escape_html(sql_database)}">
-        </div>
-        <div class="row">
-          <label for="sql_user">SQL User</label>
-          <input id="sql_user" name="sql_user" type="text" value="{_escape_html(sql_user)}">
-        </div>
-        <div class="row">
-          <label for="sql_password">SQL Password</label>
-          <input id="sql_password" name="sql_password" type="password" value="{_escape_html(sql_password)}">
-        </div>
-      </div>
-      <button type="submit">Save</button>
-    </form>
-  </main>
-</body>
-</html>"""
-
-
-def _save_settings(values):
-    params = request.env["ir.config_parameter"].sudo()
-    params.set_param(CUSTOM_TOOLS_ENABLED_PARAM, "1" if values.get("custom_tools_enabled") else "0")
-    params.set_param(SQL_ENABLED_PARAM, "1" if values.get("sql_enabled") else "0")
-    params.set_param(SQL_READONLY_PARAM, "1" if values.get("sql_readonly") else "0")
-    params.set_param(SQL_HOST_PARAM, (values.get("sql_host") or "127.0.0.1").strip())
-    params.set_param(SQL_PORT_PARAM, str(values.get("sql_port") or "5432").strip())
-    params.set_param(SQL_DATABASE_PARAM, (values.get("sql_database") or request.env.cr.dbname).strip())
-    params.set_param(SQL_USER_PARAM, (values.get("sql_user") or "").strip())
-    params.set_param(SQL_PASSWORD_PARAM, values.get("sql_password") or "")
-
-
 class OdooMcpPlusController(http.Controller):
-    @http.route(SETTINGS_PATH, type="http", auth="user", methods=["GET", "POST"])
-    def settings(self, **kwargs):
-        if not request.env.user.has_group("base.group_system"):
-            return _html_response(_internal_required_page(logout_first=True), status=403)
-
-        if request.httprequest.method == "POST":
-            _save_settings(kwargs)
-            return _html_response(_settings_page(saved=True))
-
-        return _html_response(_settings_page())
-
     @http.route(
         ["/connector/oauth", "/connector/oauth/<path:callback_path>"],
         type="http",
@@ -1787,7 +1673,7 @@ class OdooMcpPlusController(http.Controller):
                     },
                     "serverInfo": {
                         "name": "perfect-odoo-mcp",
-                        "version": "17.0.1.0.0",
+                        "version": _installed_module_version(user_env),
                     },
                 },
             )
