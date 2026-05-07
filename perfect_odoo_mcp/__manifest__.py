@@ -9,7 +9,6 @@
     "sequence": 1,
     "depends": ["base", "base_setup"],
     "data": [
-        "models/res_config_settings_fields.xml",
         "views/res_config_settings_views.xml",
     ],
     "images": [
