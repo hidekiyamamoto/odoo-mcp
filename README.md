@@ -53,7 +53,7 @@ The historical Node implementation may exist locally as `odoo-mcp-node/`, but th
 - A public HTTPS Odoo URL for OAuth clients such as ChatGPT.
 - PostgreSQL credentials only if you enable the optional SQL tool.
 
-The manifest currently targets Odoo `17.0`, but the installer is branch-aware so version-specific branches can be published and selected automatically.
+This branch targets Odoo `15.0`. The installer is branch-aware, so Odoo 15 installations select this branch automatically when it is published.
 
 ## Installation
 
