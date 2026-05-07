@@ -71,7 +71,9 @@ The installer will:
 4. Prefer a high-confidence core addons directory over misleading empty config paths.
 5. Clone `https://github.com/hidekiyamamoto/odoo-mcp`.
 6. Copy `perfect_odoo_mcp` into the selected addons directory.
-7. Refresh Odoo's app list if `--database` is provided.
+7. Back up any old `odoo_mcp` addon directory left from the pre-Perfect rename.
+8. Refresh Odoo's app list if `--database` is provided.
+9. Upgrade `perfect_odoo_mcp` automatically if it is already installed in that database.
 
 Useful options:
 

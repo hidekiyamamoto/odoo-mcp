@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
 MODULE_NAME="perfect_odoo_mcp"
+LEGACY_MODULE_NAMES=("odoo_mcp")
 WORKDIR=""
 DATABASE=""
 ODOO_BIN=""
@@ -300,6 +301,15 @@ if [[ -e "$TARGET_DIR" ]]; then
     mv "$TARGET_DIR" "$BACKUP_DIR"
 fi
 
+for LEGACY_MODULE_NAME in "${LEGACY_MODULE_NAMES[@]}"; do
+    LEGACY_TARGET_DIR="$ADDONS_DIR/$LEGACY_MODULE_NAME"
+    if [[ -e "$LEGACY_TARGET_DIR" ]]; then
+        LEGACY_BACKUP_DIR="${LEGACY_TARGET_DIR}.backup.$(date +%Y%m%d%H%M%S)"
+        echo "Legacy module directory found. Moving $LEGACY_TARGET_DIR to $LEGACY_BACKUP_DIR"
+        mv "$LEGACY_TARGET_DIR" "$LEGACY_BACKUP_DIR"
+    fi
+done
+
 cp -a "$CLONE_DIR/$MODULE_NAME" "$TARGET_DIR"
 
 echo "Installed $MODULE_NAME into $TARGET_DIR"
@@ -312,9 +322,12 @@ if [[ -n "$DATABASE" ]]; then
     fi
     "$ODOO_BIN" "${ODOO_SHELL_ARGS[@]}" <<'PY'
 env["ir.module.module"].update_list()
+module = env["ir.module.module"].search([("name", "=", "perfect_odoo_mcp")], limit=1)
+if module and module.state == "installed":
+    module.button_immediate_upgrade()
 env.cr.commit()
 PY
-    echo "Odoo app list refreshed."
+    echo "Odoo app list refreshed. Installed module was upgraded if already present."
 else
     echo "No database was provided, so the Odoo app list was not refreshed automatically."
 fi
