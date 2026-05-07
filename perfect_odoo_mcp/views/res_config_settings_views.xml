@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <function model="perfect.odoo.mcp.maintenance" name="cleanup_legacy_settings"/>
+
     <record id="action_perfect_odoo_mcp_settings_url" model="ir.actions.act_url">
         <field name="name">Perfect Odoo MCP</field>
         <field name="url">/perfect_odoo_mcp/settings</field>
