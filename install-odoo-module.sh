@@ -149,6 +149,128 @@ match_addon_filesystem_rights() {
     find "$target_dir" -type f -exec chmod --reference="$reference_file" {} +
 }
 
+find_live_odoo_process() {
+    ODOO_BIN="$ODOO_BIN" CONFIG_FILE="$CONFIG_FILE" ADDONS_DIR="$ADDONS_DIR" python3 - <<'PY'
+import os
+
+
+def read_cmdline(pid):
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as handle:
+            data = handle.read().replace(b"\0", b" ").strip()
+    except OSError:
+        return ""
+    return data.decode(errors="replace")
+
+
+odoo_bin = os.path.realpath(os.environ.get("ODOO_BIN") or "")
+config_file = os.path.realpath(os.environ.get("CONFIG_FILE") or "")
+addons_dir = os.path.realpath(os.environ.get("ADDONS_DIR") or "")
+matches = []
+
+for name in os.listdir("/proc"):
+    if not name.isdigit():
+        continue
+    cmd = read_cmdline(name)
+    lowered = cmd.lower()
+    if "odoo" not in lowered or "install-odoo-module" in lowered:
+        continue
+    if "postgres:" in lowered or "node " in lowered:
+        continue
+
+    score = 0
+    if "/odoo" in lowered or "odoo-bin" in lowered:
+        score += 20
+    if config_file and config_file in cmd:
+        score += 60
+    if odoo_bin and odoo_bin in cmd:
+        score += 40
+    if addons_dir and addons_dir in cmd:
+        score += 10
+    if "--config" in cmd or "-c " in cmd:
+        score += 5
+    if score:
+        matches.append((score, int(name), cmd))
+
+if not matches:
+    raise SystemExit(1)
+
+matches.sort(key=lambda item: (-item[0], item[1]))
+_, pid, cmd = matches[0]
+print(pid)
+print(cmd)
+PY
+}
+
+systemd_unit_for_pid() {
+    local pid="$1"
+    command -v systemctl >/dev/null 2>&1 || return 1
+
+    local unit main_pid
+    while read -r unit _; do
+        [[ -n "$unit" ]] || continue
+        main_pid="$(systemctl show -p MainPID --value "$unit" 2>/dev/null || true)"
+        if [[ "$main_pid" == "$pid" ]]; then
+            echo "$unit"
+            return 0
+        fi
+    done < <(systemctl list-units --type=service --state=running --no-legend --no-pager 2>/dev/null)
+    return 1
+}
+
+docker_container_for_pid() {
+    local pid="$1"
+    command -v docker >/dev/null 2>&1 || return 1
+
+    local container container_pid
+    for container in $(docker ps -q 2>/dev/null); do
+        container_pid="$(docker inspect --format '{{.State.Pid}}' "$container" 2>/dev/null || true)"
+        if [[ "$container_pid" == "$pid" ]]; then
+            echo "$container"
+            return 0
+        fi
+    done
+    return 1
+}
+
+restart_live_odoo() {
+    echo "Finding live Odoo process to restart."
+
+    local process_info pid cmd unit container
+    if ! process_info="$(find_live_odoo_process)"; then
+        fail "Could not find a live Odoo process to restart. Start Odoo manually, then rerun the installer."
+    fi
+    pid="$(printf '%s\n' "$process_info" | sed -n '1p')"
+    cmd="$(printf '%s\n' "$process_info" | sed -n '2,$p')"
+    echo "Selected live Odoo process PID $pid: $cmd"
+
+    if unit="$(systemd_unit_for_pid "$pid")"; then
+        echo "Restarting systemd unit $unit."
+        systemctl restart "$unit"
+        systemctl is-active --quiet "$unit" || fail "systemd unit $unit did not become active after restart."
+        echo "Restarted $unit."
+        return 0
+    fi
+
+    if container="$(docker_container_for_pid "$pid")"; then
+        echo "Restarting Docker container $container."
+        docker restart "$container" >/dev/null
+        [[ "$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null)" == "true" ]] \
+            || fail "Docker container $container did not become running after restart."
+        echo "Restarted Docker container $container."
+        return 0
+    fi
+
+    cat >&2 <<EOF
+ERROR: Found a live Odoo process but could not identify a restart manager.
+PID: $pid
+Command: $cmd
+
+Restart Odoo manually, or run this installer on the host/container where Odoo is managed by systemd or Docker.
+EOF
+    exit 1
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--database)
@@ -375,6 +497,7 @@ cp -a "$CLONE_DIR/$MODULE_NAME" "$TARGET_DIR"
 match_addon_filesystem_rights "$TARGET_DIR"
 
 echo "Installed $MODULE_NAME into $TARGET_DIR"
+restart_live_odoo
 
 if [[ -n "$DATABASE" ]]; then
     echo "Refreshing Odoo app list for database $DATABASE"
@@ -399,7 +522,7 @@ cat <<EOF
 All set. Perfect Odoo MCP is in place.
 
 Next:
-  1. Restart Odoo if this addons directory is loaded by a running service.
+  1. Odoo has been restarted so Python models/controllers are reloaded.
   2. Open Apps, remove any app search filter if needed, and install "Perfect Odoo MCP".
 EOF
 
