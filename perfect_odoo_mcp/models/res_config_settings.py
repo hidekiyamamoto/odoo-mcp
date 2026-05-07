@@ -1,17 +1,18 @@
 from odoo import fields, models
 
-from ..controllers.mcp import (
-    CUSTOM_TOOLS_ENABLED_PARAM,
-    MCP_PATH,
-    SQL_DATABASE_PARAM,
-    SQL_ENABLED_PARAM,
-    SQL_HOST_PARAM,
-    SQL_PASSWORD_PARAM,
-    SQL_PORT_PARAM,
-    SQL_READONLY_PARAM,
-    SQL_USER_PARAM,
-    _public_base_url,
-)
+MCP_PATH = "/perfect_odoo_mcp/mcp"
+CUSTOM_TOOLS_ENABLED_PARAM = "perfect_odoo_mcp.custom_tools_enabled"
+SQL_ENABLED_PARAM = "perfect_odoo_mcp.sql_enabled"
+SQL_READONLY_PARAM = "perfect_odoo_mcp.sql_readonly"
+SQL_HOST_PARAM = "perfect_odoo_mcp.sql_host"
+SQL_PORT_PARAM = "perfect_odoo_mcp.sql_port"
+SQL_DATABASE_PARAM = "perfect_odoo_mcp.sql_database"
+SQL_USER_PARAM = "perfect_odoo_mcp.sql_user"
+SQL_PASSWORD_PARAM = "perfect_odoo_mcp.sql_password"
+
+
+def _public_base_url(base_url):
+    return base_url.replace("http://", "https://", 1) if base_url.startswith("http://") else base_url
 
 
 class ResConfigSettings(models.TransientModel):
