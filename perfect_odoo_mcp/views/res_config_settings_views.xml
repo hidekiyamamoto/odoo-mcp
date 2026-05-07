@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="action_perfect_odoo_mcp_settings" model="ir.actions.act_url">
+    <record id="action_perfect_odoo_mcp_settings_url" model="ir.actions.act_url">
         <field name="name">Perfect Odoo MCP</field>
         <field name="url">/perfect_odoo_mcp/settings</field>
         <field name="target">self</field>
@@ -9,6 +9,6 @@
     <menuitem id="menu_perfect_odoo_mcp_settings"
               name="Perfect Odoo MCP"
               parent="base.menu_administration"
-              action="action_perfect_odoo_mcp_settings"
+              action="action_perfect_odoo_mcp_settings_url"
               sequence="95"/>
 </odoo>
