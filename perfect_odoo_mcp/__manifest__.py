@@ -1,6 +1,11 @@
 {
     "name": "Perfect Odoo MCP",
     "summary": "Odoo-native MCP server with OAuth, ACL-aware tools, SQL, and custom tool development.",
+    "description": (
+        "Perfect Odoo MCP must be installed as a normal local Odoo addon from the addons path. "
+        "It is not compatible with Apps > Import Module because Odoo's import flow does not load "
+        "new Python controllers, models, and security-sensitive route code."
+    ),
     "version": "19.0.1.0.0",
     "category": "Technical",
     "author": "Hideki Andrea Yamamoto, Davide Bottazzo",

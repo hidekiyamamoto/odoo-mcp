@@ -57,6 +57,8 @@ This branch targets Odoo `19.0`. The installer is branch-aware, so Odoo 19 insta
 
 ## Installation
 
+> **Local addon install required:** Perfect Odoo MCP is not compatible with Odoo's **Apps -> Import Module** upload flow. The module defines Python controllers, models, OAuth routes, and MCP endpoints, so it must be deployed as a normal local addon in an Odoo addons path and loaded by the Odoo server. This follows Odoo's security architecture: uploaded importable modules cannot safely register new Python route code.
+
 From a machine that can access the Odoo installation:
 
 ```bash
