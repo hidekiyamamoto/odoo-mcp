@@ -22,7 +22,7 @@
                         <setting id="x_perfect_odoo_mcp_mcp_url" string="MCP Endpoint" help="Use this URL to connect an MCP client to this Odoo database.">
                             <div class="content-group">
                                 <div class="mt16">
-                                    <field name="x_perfect_odoo_mcp_mcp_url" readonly="1" nolabel="1" class="w-100"/>
+                                    <code>/perfect_odoo_mcp/mcp</code>
                                 </div>
                             </div>
                         </setting>
