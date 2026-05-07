@@ -12,8 +12,7 @@
               name="Perfect Odoo MCP"
               parent="base.menu_administration"
               action="action_perfect_odoo_mcp_settings"
-              sequence="95"
-              groups="base.group_system"/>
+              sequence="95"/>
 
     <record id="res_config_settings_view_form" model="ir.ui.view">
         <field name="name">res.config.settings.view.form.inherit.perfect.odoo.mcp</field>
