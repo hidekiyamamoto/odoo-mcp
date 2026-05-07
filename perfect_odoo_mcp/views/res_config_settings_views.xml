@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <function model="perfect.odoo.mcp.maintenance" name="cleanup_legacy_settings"/>
+    <delete model="ir.ui.view"
+            search="['|', ('name', '=', 'res.config.settings.view.form.inherit.perfect.odoo.mcp'), ('arch_db', 'ilike', 'perfect_odoo_mcp_mcp_url')]"/>
+    <delete model="ir.attachment"
+            search="[('url', 'like', '/web/assets/%'), '|', ('name', 'ilike', 'web.assets_backend'), ('url', 'ilike', 'web.assets_backend')]"/>
 
     <record id="action_perfect_odoo_mcp_settings_url" model="ir.actions.act_url">
         <field name="name">Perfect Odoo MCP</field>
