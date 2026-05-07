@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import importlib.util
 import json
 import logging
 import os
@@ -12,6 +13,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
 from odoo import api, http, release
 from odoo.fields import Datetime
 from odoo.http import Response, request
+from odoo.tools import config as odoo_config
 
 
 _logger = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ SQL_PORT_PARAM = "odoo_mcp_plus.sql_port"
 SQL_DATABASE_PARAM = "odoo_mcp_plus.sql_database"
 SQL_USER_PARAM = "odoo_mcp_plus.sql_user"
 SQL_PASSWORD_PARAM = "odoo_mcp_plus.sql_password"
+CUSTOM_TOOLS_ENABLED_PARAM = "odoo_mcp_plus.custom_tools_enabled"
 EMPTY_AI_CONTEXT_BOOTSTRAP = """Odoo MCP Plus context bootstrap
 ================================
 
@@ -73,8 +76,8 @@ Required discovery sequence
    - Installed modules, grouped by source.
    - All modules classified as `third_party_or_custom`, `odoo_mcp_plus`, or `unknown`.
 3. For each custom/unknown module, inspect code before assigning meaning:
-   - Use `odoo_python_code_search` for `_name =`, `_inherit =`, `fields.`, `Many2one`, `One2many`, `Many2many`, `Selection`, `compute=`, and business-looking labels.
-   - Use `odoo_python_code_read` on the most important model files.
+   - Use `odoo_python_lookup` with `operation = "search"` for `_name =`, `_inherit =`, `fields.`, `Many2one`, `One2many`, `Many2many`, `Selection`, `compute=`, and business-looking labels.
+   - Use `odoo_python_lookup` with `operation = "read"` on the most important model files.
    - Prefer Python model definitions over menu names or UI labels when deciding semantics.
 4. Use `odoo_search_read` sparingly to validate live data shape:
    - read `ir.model` / `ir.model.fields` for important custom models;
@@ -105,7 +108,7 @@ Runtime context
   - `search` / `fetch` for connector-style discovery.
   - `odoo_search_read` for precise model queries.
   - `odoo_search` for IDs only.
-  - `odoo_python_code_search` / `odoo_python_code_read` for read-only code inspection.
+  - `odoo_python_lookup` for read-only code inspection with `operation = "search"` or `operation = "read"`.
 - Mention that Odoo domains for `odoo_search` and `odoo_search_read` are JSON-encoded strings.
 
 Install snapshot
@@ -186,6 +189,45 @@ SQL_FORBIDDEN_READONLY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 SQL_READONLY_START_PATTERN = re.compile(r"^\s*(select|with|show|explain)\b", re.IGNORECASE)
+CUSTOM_TOOL_FILE_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\.py$")
+CUSTOM_TOOLS_DIR = os.path.abspath(
+    os.path.join(
+        odoo_config.get("data_dir") or "/var/lib/odoo/.local/share/Odoo",
+        "odoo_mcp_plus_custom_tools",
+    )
+)
+CUSTOM_TOOLS_CACHE = None
+CUSTOM_TOOL_TEMPLATE = '''"""Draft custom MCP tool for Odoo MCP Plus.
+
+Set EXPOSED = True only after review. Draft tools can be tested with call-custom.
+"""
+
+EXPOSED = False
+
+TOOL = {
+    "name": "example_custom_tool",
+    "title": "Example Custom Tool",
+    "description": "Describe what this custom tool does.",
+    "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    },
+}
+
+
+def call(arguments, env, request):
+    """Run as the OAuth-authorized Odoo user.
+
+    arguments: dict from the MCP tool call
+    env: Odoo api.Environment for the authorized user
+    request: current Odoo HTTP request object
+    """
+    return {
+        "message": "Hello from a draft custom tool.",
+        "user": env.user.login,
+    }
+'''
 
 
 TOOLS = [
@@ -297,36 +339,48 @@ TOOLS = [
         },
     },
     {
-        "name": "odoo_python_code_search",
-        "title": "Odoo Python Code Search",
-        "description": "Read-only search across .py files under Odoo addon paths.",
+        "name": "odoo_python_lookup",
+        "title": "Odoo Python Lookup",
+        "description": (
+            "Read-only lookup for Python code under Odoo addon paths. Use operation='search' for "
+            "context building, hypothesis checking, and model/field discovery; use operation='read' "
+            "to inspect a specific file. This tool only searches and reads Python source; it never "
+            "modifies files, records, settings, or server state."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "minLength": 1},
-                "module": {"type": "string", "minLength": 1},
-                "maxResults": {"type": "integer", "minimum": 1, "maximum": 200},
-            },
-            "required": ["query"],
-            "additionalProperties": False,
-        },
-    },
-    {
-        "name": "odoo_python_code_read",
-        "title": "Odoo Python Code Read",
-        "description": "Read a single .py file under Odoo addon paths.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
+                "operation": {
+                    "type": "string",
+                    "enum": ["search", "read"],
+                    "description": "Use 'search' to find code snippets, or 'read' to read a single .py file.",
+                },
+                "query": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Required when operation is 'search'. Text or regex-like literal to find.",
+                },
+                "module": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Optional module directory filter for search, for example sale or mnt18.",
+                },
+                "maxResults": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": "Maximum search matches to return.",
+                },
                 "path": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Relative addon path, for example sale/models/sale_order.py.",
+                    "description": "Required when operation is 'read'. Relative addon path, for example sale/models/sale_order.py.",
                 },
             },
-            "required": ["path"],
+            "required": ["operation"],
             "additionalProperties": False,
         },
+        "annotations": {"readOnlyHint": True, "destructiveHint": False},
     },
 ]
 
@@ -347,6 +401,10 @@ SQL_TOOL = {
             "parameters": {
                 "type": "array",
                 "description": "Optional positional query parameters.",
+                "items": {
+                    "type": ["string", "number", "integer", "boolean", "null"],
+                    "description": "One positional SQL parameter value.",
+                },
             },
             "maxRows": {
                 "type": "integer",
@@ -359,6 +417,87 @@ SQL_TOOL = {
         "additionalProperties": False,
     },
 }
+
+CUSTOM_TOOL_MANAGER_TOOLS = [
+    {
+        "name": "custom_tools_list",
+        "title": "List Custom Tools",
+        "description": (
+            "List custom Python MCP tool files, show which reviewed tools are exposed, and return the "
+            "required Python template. Use this first when building tools so you know the current drafts, "
+            "published tools, load errors, and expected file format."
+        ),
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+        "annotations": {"readOnlyHint": True},
+    },
+    {
+        "name": "custom_tool_read",
+        "title": "Read Custom Tool",
+        "description": (
+            "Read a custom Python MCP tool file. Use this before modifying a draft or published custom "
+            "tool so you preserve existing behavior and can review exactly what will execute inside Odoo."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Custom tool filename, for example my_tool.py."},
+            },
+            "required": ["filename"],
+            "additionalProperties": False,
+        },
+        "annotations": {"readOnlyHint": True},
+    },
+    {
+        "name": "custom_tool_write",
+        "title": "Write Custom Tool",
+        "description": (
+            "Create or replace a custom Python MCP tool file. Tool-building workflow: use "
+            "odoo_python_lookup with operation='search' and operation='read' to understand the relevant Odoo models and code, submit a "
+            "complete .py file here with EXPOSED = False, run it through call-custom until it behaves "
+            "correctly, then ask the user to publish it, make it available, or declare it stable. Only "
+            "then set EXPOSED = True and reload custom tools; after the client refreshes actions, the "
+            "tool is directly available in tools/list."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Custom tool filename, for example my_tool.py."},
+                "code": {"type": "string", "description": "Complete Python source code for the custom tool."},
+            },
+            "required": ["filename", "code"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "custom_tools_reload",
+        "title": "Reload Custom Tools",
+        "description": (
+            "Reload custom tool files from disk and report exposed/rejected tools. Use this after writing "
+            "or publishing a tool. Drafts with EXPOSED = False remain callable only through call-custom; "
+            "reviewed tools with EXPOSED = True appear in tools/list after the MCP client refreshes actions."
+        ),
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "name": "call-custom",
+        "title": "Call Custom Tool",
+        "description": (
+            "Run a custom tool by filename or tool name without exposing it in tools/list. "
+            "Use this for draft validation, hypothesis checks, and tool-building tests after "
+            "custom_tool_write. Passing tests here does not publish the tool; publish only after review "
+            "by setting EXPOSED = True, calling custom_tools_reload, and refreshing the MCP client's actions."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "Optional custom tool filename."},
+                "name": {"type": "string", "description": "Optional custom tool name from its TOOL definition."},
+                "arguments": {"type": "object", "description": "Arguments to pass to the custom tool."},
+            },
+            "additionalProperties": False,
+        },
+    },
+]
 
 
 def _json_response(payload, status=200):
@@ -444,6 +583,10 @@ def _sql_readonly():
     return _param_bool(SQL_READONLY_PARAM, default=True)
 
 
+def _custom_tools_enabled():
+    return _param_bool(CUSTOM_TOOLS_ENABLED_PARAM)
+
+
 def _available_tools():
     tools = list(TOOLS)
     if _sql_enabled():
@@ -451,6 +594,9 @@ def _available_tools():
         if _sql_readonly():
             sql_tool["annotations"] = {"readOnlyHint": True}
         tools.append(sql_tool)
+    if _custom_tools_enabled():
+        tools.extend(CUSTOM_TOOL_MANAGER_TOOLS)
+        tools.extend(_custom_tools_cache()["exposed_tools"])
     return tools
 
 
@@ -932,6 +1078,10 @@ def _installed_modules_info(user_env):
                 "readonly": _sql_readonly(),
                 "toolName": "odoo_sql" if _sql_enabled() else None,
             },
+            "customTools": {
+                "enabled": _custom_tools_enabled(),
+                "directory": CUSTOM_TOOLS_DIR if _custom_tools_enabled() else None,
+            },
         },
         "request": {
             "urlRoot": httprequest.url_root.rstrip("/") if httprequest.url_root else None,
@@ -962,6 +1112,199 @@ def _installed_modules_info(user_env):
             "items": module_items,
         },
     }
+
+
+def _ensure_custom_tools_enabled():
+    if not _custom_tools_enabled():
+        raise ValueError("Custom tools creation is not enabled in Odoo MCP Plus settings.")
+
+
+def _ensure_custom_tools_dir():
+    os.makedirs(CUSTOM_TOOLS_DIR, exist_ok=True)
+
+
+def _custom_tool_path(filename):
+    if not isinstance(filename, str) or not CUSTOM_TOOL_FILE_PATTERN.match(filename):
+        raise ValueError("filename must look like my_tool.py and contain only letters, numbers, and underscores.")
+    _ensure_custom_tools_dir()
+    path = os.path.abspath(os.path.join(CUSTOM_TOOLS_DIR, filename))
+    if not path.startswith(CUSTOM_TOOLS_DIR + os.sep):
+        raise ValueError("Invalid custom tool path.")
+    return path
+
+
+def _custom_tool_files():
+    _ensure_custom_tools_dir()
+    return sorted(filename for filename in os.listdir(CUSTOM_TOOLS_DIR) if CUSTOM_TOOL_FILE_PATTERN.match(filename))
+
+
+def _load_custom_tool_file(filename):
+    path = _custom_tool_path(filename)
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"Custom tool file not found: {filename}")
+
+    module_name = f"odoo_mcp_plus_custom_{filename[:-3]}_{hashlib.sha1(path.encode()).hexdigest()[:8]}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if not spec or not spec.loader:
+        raise ValueError(f"Could not load custom tool file: {filename}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    tool = getattr(module, "TOOL", None)
+    call = getattr(module, "call", None)
+    exposed = bool(getattr(module, "EXPOSED", False))
+
+    if not isinstance(tool, dict):
+        raise ValueError("Custom tool must define TOOL as a dictionary.")
+    if not isinstance(tool.get("name"), str) or not tool["name"]:
+        raise ValueError("Custom tool TOOL must include a non-empty string name.")
+    if not isinstance(tool.get("inputSchema"), dict):
+        raise ValueError("Custom tool TOOL must include an inputSchema dictionary.")
+    if not callable(call):
+        raise ValueError("Custom tool must define callable function call(arguments, env, request).")
+
+    return {
+        "filename": filename,
+        "path": path,
+        "module": module,
+        "tool": tool,
+        "call": call,
+        "exposed": exposed,
+    }
+
+
+def _load_custom_tools():
+    loaded = {}
+    exposed_tools = []
+    files = []
+    errors = []
+    builtin_names = {tool["name"] for tool in TOOLS}
+    builtin_names.update(tool["name"] for tool in CUSTOM_TOOL_MANAGER_TOOLS)
+    builtin_names.add(SQL_TOOL["name"])
+
+    for filename in _custom_tool_files():
+        files.append(filename)
+        try:
+            item = _load_custom_tool_file(filename)
+            name = item["tool"]["name"]
+            if name in builtin_names:
+                raise ValueError(f"Custom tool name collides with a built-in tool: {name}")
+            if name in loaded:
+                raise ValueError(f"Duplicate custom tool name: {name}")
+            loaded[name] = item
+            if item["exposed"]:
+                exposed_tools.append(item["tool"])
+        except Exception as error:
+            _logger.exception("Custom tool load failed for %s", filename)
+            errors.append({"filename": filename, "error": str(error)})
+
+    return {
+        "tools": loaded,
+        "exposed_tools": exposed_tools,
+        "files": files,
+        "errors": errors,
+    }
+
+
+def _custom_tools_cache(force=False):
+    global CUSTOM_TOOLS_CACHE
+    if force or CUSTOM_TOOLS_CACHE is None:
+        CUSTOM_TOOLS_CACHE = _load_custom_tools()
+    return CUSTOM_TOOLS_CACHE
+
+
+def _custom_tool_result(value):
+    if isinstance(value, dict) and ("content" in value or value.get("isError")):
+        return value
+    if isinstance(value, str):
+        return _tool_text(value)
+    return _tool_json(value)
+
+
+def _custom_tools_list():
+    _ensure_custom_tools_enabled()
+    cache = _custom_tools_cache(force=True)
+    items = []
+    for filename in cache["files"]:
+        try:
+            item = _load_custom_tool_file(filename)
+            items.append(
+                {
+                    "filename": filename,
+                    "name": item["tool"]["name"],
+                    "title": item["tool"].get("title"),
+                    "exposed": item["exposed"],
+                }
+            )
+        except Exception as error:
+            items.append({"filename": filename, "error": str(error), "exposed": False})
+    return _tool_json(
+        {
+            "directory": CUSTOM_TOOLS_DIR,
+            "files": items,
+            "loadErrors": cache["errors"],
+            "template": CUSTOM_TOOL_TEMPLATE,
+        }
+    )
+
+
+def _custom_tool_read(arguments):
+    _ensure_custom_tools_enabled()
+    filename = arguments.get("filename")
+    path = _custom_tool_path(filename)
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"Custom tool file not found: {filename}")
+    with open(path, encoding="utf-8") as handle:
+        return _tool_text(handle.read())
+
+
+def _custom_tool_write(arguments):
+    _ensure_custom_tools_enabled()
+    filename = arguments.get("filename")
+    code = arguments.get("code")
+    if not isinstance(code, str):
+        raise ValueError("code must be a string.")
+    path = _custom_tool_path(filename)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(code)
+        if not code.endswith("\n"):
+            handle.write("\n")
+    _custom_tools_cache(force=True)
+    return _tool_json({"filename": filename, "path": path, "status": "written"})
+
+
+def _custom_tools_reload():
+    _ensure_custom_tools_enabled()
+    cache = _custom_tools_cache(force=True)
+    return _tool_json(
+        {
+            "directory": CUSTOM_TOOLS_DIR,
+            "fileCount": len(cache["files"]),
+            "exposedTools": [tool["name"] for tool in cache["exposed_tools"]],
+            "errors": cache["errors"],
+        }
+    )
+
+
+def _test_custom_tool(arguments, user_env):
+    _ensure_custom_tools_enabled()
+    filename = arguments.get("filename")
+    name = arguments.get("name")
+    call_arguments = arguments.get("arguments") or {}
+    if not isinstance(call_arguments, dict):
+        raise ValueError("arguments must be an object.")
+
+    if filename:
+        item = _load_custom_tool_file(filename)
+    elif name:
+        item = _custom_tools_cache(force=True)["tools"].get(name)
+        if not item:
+            raise ValueError(f"Custom tool not found: {name}")
+    else:
+        raise ValueError("Provide filename or name.")
+
+    return _custom_tool_result(item["call"](call_arguments, user_env, request))
 
 
 def _sql_config():
@@ -1101,6 +1444,25 @@ def _call_tool(name, arguments, user_env):
     if name == "odoo_sql":
         return _execute_direct_sql(arguments)
 
+    if name == "custom_tools_list":
+        return _custom_tools_list()
+
+    if name == "custom_tool_read":
+        return _custom_tool_read(arguments)
+
+    if name == "custom_tool_write":
+        return _custom_tool_write(arguments)
+
+    if name == "custom_tools_reload":
+        return _custom_tools_reload()
+
+    if name == "call-custom":
+        return _test_custom_tool(arguments, user_env)
+
+    custom_item = _custom_tools_cache()["tools"].get(name) if _custom_tools_enabled() else None
+    if custom_item and custom_item["exposed"]:
+        return _custom_tool_result(custom_item["call"](arguments, user_env, request))
+
     if name == "get-ai-context":
         text = request.env["ir.config_parameter"].sudo().get_param(AI_CONTEXT_PARAM, "")
         return _tool_text(text or EMPTY_AI_CONTEXT_BOOTSTRAP)
@@ -1145,6 +1507,38 @@ def _call_tool(name, arguments, user_env):
             order=order if order else None,
         )
         return _tool_json({"model": model, "domain": domain, "records": records})
+
+    if name in ("odoo_python_lookup", "odoo_python_code_lookup"):
+        operation = arguments.get("operation")
+        if operation == "search":
+            query = arguments.get("query")
+            if not isinstance(query, str) or not query:
+                raise ValueError("query is required when operation is 'search'.")
+            module = arguments.get("module")
+            max_results = int(arguments.get("maxResults") or 50)
+            max_results = max(1, min(max_results, 200))
+            matches = _search_python_code(query, module=module, max_results=max_results)
+            return _tool_json(
+                {
+                    "operation": operation,
+                    "addonsRoots": _addons_roots(),
+                    "query": query,
+                    "module": module or None,
+                    "count": len(matches),
+                    "matches": matches,
+                }
+            )
+
+        if operation == "read":
+            relative_path = arguments.get("path")
+            if not isinstance(relative_path, str) or not relative_path:
+                raise ValueError("path is required when operation is 'read'.")
+            root, file_path = _resolve_addons_file(relative_path)
+            with open(file_path, encoding="utf-8") as handle:
+                text = handle.read()
+            return _tool_text(text)
+
+        raise ValueError("operation must be 'search' or 'read'.")
 
     if name == "odoo_python_code_search":
         query = arguments.get("query")

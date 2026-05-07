@@ -51,54 +51,12 @@
                             </div>
                         </setting>
                     </block>
-                    <block title="AI Providers" name="odoo_mcp_plus_ai_providers">
-                        <setting id="odoo_mcp_plus_openai_api_key" string="OpenAI" help="Store an OpenAI API key for Odoo MCP Plus features.">
-                            <field name="odoo_mcp_plus_has_openai_api_key" invisible="1"/>
-                            <div class="content-group">
-                                <div class="mt16">
-                                    <field
-                                        name="odoo_mcp_plus_openai_api_key"
-                                        password="True"
-                                        placeholder="sk-..."
-                                        nolabel="1"
-                                    />
-                                </div>
+                    <block title="Custom Tools" name="odoo_mcp_plus_custom_tools">
+                        <setting id="odoo_mcp_plus_custom_tools_enabled" string="Allow Custom Tools Creation" help="Expose MCP tools that let an authorized MCP client read, write, reload, and test custom Python MCP tools.">
+                            <field name="odoo_mcp_plus_custom_tools_enabled"/>
+                            <div class="text-warning mt8" invisible="not odoo_mcp_plus_custom_tools_enabled">
+                                Custom tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.
                             </div>
-                            <div class="text-muted mt8" invisible="not odoo_mcp_plus_has_openai_api_key">
-                                An OpenAI API key is currently stored.
-                            </div>
-                            <button
-                                name="action_odoo_mcp_plus_clear_openai_key"
-                                type="object"
-                                string="Clear OpenAI Key"
-                                class="btn-link mt8"
-                                icon="fa-trash"
-                                invisible="not odoo_mcp_plus_has_openai_api_key"
-                            />
-                        </setting>
-                        <setting id="odoo_mcp_plus_gemini_api_key" string="Gemini" help="Store a Gemini API key for Odoo MCP Plus features.">
-                            <field name="odoo_mcp_plus_has_gemini_api_key" invisible="1"/>
-                            <div class="content-group">
-                                <div class="mt16">
-                                    <field
-                                        name="odoo_mcp_plus_gemini_api_key"
-                                        password="True"
-                                        placeholder="AIza..."
-                                        nolabel="1"
-                                    />
-                                </div>
-                            </div>
-                            <div class="text-muted mt8" invisible="not odoo_mcp_plus_has_gemini_api_key">
-                                A Gemini API key is currently stored.
-                            </div>
-                            <button
-                                name="action_odoo_mcp_plus_clear_gemini_key"
-                                type="object"
-                                string="Clear Gemini Key"
-                                class="btn-link mt8"
-                                icon="fa-trash"
-                                invisible="not odoo_mcp_plus_has_gemini_api_key"
-                            />
                         </setting>
                     </block>
                 </app>
