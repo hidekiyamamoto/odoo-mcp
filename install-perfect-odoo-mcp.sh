@@ -477,6 +477,13 @@ for _, path, source, runner in ranked:
         print(runner)
         sys.exit(0)
 
+if ranked:
+    _, path, source, runner = ranked[0]
+    print(path)
+    print(f"{source}:unverified")
+    print(runner)
+    sys.exit(0)
+
 sys.exit(1)
 PY
 }
@@ -629,19 +636,57 @@ ODOO_SERIES="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+\.[0-9]+)
 ODOO_MAJOR="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+).*/\1/p')"
 
 if [[ -z "$ODOO_MAJOR" ]]; then
-    ODOO_FULL_VERSION="$(python3 - <<'PY'
-try:
-    import odoo
-    print(str(odoo.release.version).split("-", 1)[0])
-except Exception:
-    pass
+    ODOO_MAJOR="$(printf '%s\n%s\n%s\n' "$ODOO_BIN" "$ODOO_RUNNER" "${ODOO_BIN_SOURCE:-}" | sed -nE 's/.*odoo[-_]?([0-9]{2})([^0-9].*)?$/\1/p' | head -n 1)"
+    if [[ -n "$ODOO_MAJOR" ]]; then
+        ODOO_FULL_VERSION="${ODOO_MAJOR}.0"
+        ODOO_SERIES="${ODOO_MAJOR}.0"
+    fi
+fi
+
+if [[ -z "$ODOO_MAJOR" ]]; then
+    ODOO_FULL_VERSION="$(ODOO_BIN="$ODOO_BIN" ODOO_RUNNER="$ODOO_RUNNER" python3 - <<'PY'
+import os
+import subprocess
+
+odoo_bin = os.environ.get("ODOO_BIN", "")
+odoo_runner = os.environ.get("ODOO_RUNNER", "")
+commands = []
+if odoo_runner and odoo_bin:
+    commands.append([odoo_runner, odoo_bin, "shell", "--help"])
+if odoo_bin:
+    commands.append([odoo_bin, "shell", "--help"])
+
+for command in commands:
+    try:
+        output = subprocess.run(
+            command,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=15,
+        ).stdout
+    except Exception:
+        continue
+    if output:
+        import re
+        match = re.search(r"Odoo[^0-9]*([0-9]+(?:\.[0-9]+)*)", output, re.I)
+        if match:
+            print(match.group(1))
+            raise SystemExit(0)
 PY
 )"
     ODOO_SERIES="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+\.[0-9]+).*/\1/p')"
     ODOO_MAJOR="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+).*/\1/p')"
 fi
 
-[[ -n "$ODOO_MAJOR" ]] || fail "Could not detect Odoo version."
+if [[ -z "$ODOO_MAJOR" ]]; then
+    ODOO_FULL_VERSION="$(run_odoo shell --help 2>&1 | sed -nE 's/.*Odoo[^0-9]*([0-9]+(\.[0-9]+)*).*/\1/ip' | head -n 1 || true)"
+    ODOO_SERIES="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+\.[0-9]+).*/\1/p')"
+    ODOO_MAJOR="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+).*/\1/p')"
+fi
+
+[[ -n "$ODOO_MAJOR" ]] || fail "installer $INSTALLER_VERSION: Could not detect Odoo version from --version, service path, or shell help."
 SELECTED_BRANCH="$(select_branch)"
 
 if [[ -z "$ADDONS_DIR" ]]; then
