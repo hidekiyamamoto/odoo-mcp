@@ -261,6 +261,16 @@ def command_candidates_from_argv(argv):
     return candidates
 
 
+def add_execstart_paths(candidates, text, score, source):
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("ExecStart"):
+            continue
+        for path in re.findall(r"(/[^\s;]*odoo(?:-bin)?)", line):
+            if looks_like_odoo_path(path):
+                add(candidates, path, score, source)
+
+
 def read_proc_cmdlines(candidates):
     proc_dir = "/proc"
     if not os.path.isdir(proc_dir):
@@ -332,6 +342,37 @@ def read_systemd_units(candidates):
             if looks_like_odoo_path(path):
                 add(candidates, path, 110, f"systemd:{unit}")
 
+        try:
+            unit_path = subprocess.run(
+                ["systemctl", "show", "-p", "FragmentPath", "--value", unit],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=5,
+            ).stdout.strip()
+        except Exception:
+            continue
+        if os.path.isfile(unit_path):
+            try:
+                with open(unit_path, encoding="utf-8") as handle:
+                    add_execstart_paths(candidates, handle.read(), 115, f"systemd-file:{unit}")
+            except OSError:
+                pass
+
+
+def read_systemd_unit_files(candidates):
+    unit_paths = []
+    for directory in ("/etc/systemd/system", "/run/systemd/system", "/usr/lib/systemd/system", "/lib/systemd/system"):
+        unit_paths.extend(glob.glob(os.path.join(directory, "*odoo*.service")))
+
+    for unit_path in unit_paths:
+        try:
+            with open(unit_path, encoding="utf-8") as handle:
+                add_execstart_paths(candidates, handle.read(), 75, f"systemd-file:{os.path.basename(unit_path)}")
+        except OSError:
+            continue
+
 
 candidates = []
 
@@ -340,6 +381,7 @@ for name in ("odoo", "odoo-bin"):
 
 read_proc_cmdlines(candidates)
 read_systemd_units(candidates)
+read_systemd_unit_files(candidates)
 
 common_patterns = (
     "/usr/bin/odoo",
