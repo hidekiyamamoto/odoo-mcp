@@ -61,6 +61,14 @@ This branch targets Odoo `14.0`. The installer is branch-aware, so Odoo 14 insta
 
 From a machine that can access the Odoo installation:
 
+Debian usage:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash
+```
+
+Local checkout usage:
+
 ```bash
 ./install-odoo-module.sh -d YOUR_DATABASE
 ```
