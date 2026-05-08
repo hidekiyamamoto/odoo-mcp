@@ -6,11 +6,11 @@ MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
 WORKDIR=""
 FORCE=0
-DATABASE=""
-ODOO_BIN=""
-ADDONS_DIR=""
-BRANCH=""
-CONFIG_FILE=""
+DATABASE="${DATABASE:-}"
+ODOO_BIN="${ODOO_BIN:-}"
+ADDONS_DIR="${ADDONS_DIR:-}"
+BRANCH="${BRANCH:-}"
+CONFIG_FILE="${CONFIG_FILE:-}"
 
 usage() {
     cat <<'EOF'
@@ -21,7 +21,7 @@ Usage:
 
 Options:
   -d, --database DB       Refresh Odoo's app list for this database after copying.
-  --odoo-bin PATH         Odoo executable to use. Defaults to odoo or odoo-bin in PATH.
+  --odoo-bin PATH         Odoo executable to use. Auto-detected from PATH, live processes, systemd, or common paths.
   --addons-dir PATH       Target addons directory. Defaults to Odoo's core addons directory.
   --config PATH           Odoo config file to inspect for addons_path fallback candidates.
   --branch BRANCH         Git branch to clone. Defaults to the detected Odoo major version, e.g. 17.0.
@@ -202,6 +202,193 @@ print(cmd)
 PY
 }
 
+discover_odoo_bin() {
+    CONFIG_FILE="$CONFIG_FILE" python3 - <<'PY'
+import glob
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+
+def is_executable_file(path):
+    return path and os.path.isfile(path) and os.access(path, os.X_OK)
+
+
+def normalize(path):
+    if not path:
+        return ""
+    return os.path.realpath(os.path.abspath(os.path.expanduser(path)))
+
+
+def add(candidates, path, score, source):
+    if path and not os.path.isabs(path):
+        path = shutil.which(path) or path
+    path = normalize(path)
+    if is_executable_file(path):
+        candidates.append((score, path, source))
+
+
+def looks_like_odoo_path(path):
+    base = os.path.basename(path)
+    lowered = path.lower()
+    return base in {"odoo", "odoo-bin"} or "/odoo-bin" in lowered or lowered.endswith("/odoo")
+
+
+def command_candidates_from_argv(argv):
+    if not argv:
+        return []
+
+    candidates = []
+    first = argv[0]
+    if looks_like_odoo_path(first):
+        candidates.append(first)
+
+    first_base = os.path.basename(first)
+    if first_base.startswith("python") or first_base in {"python", "python3"}:
+        for arg in argv[1:6]:
+            if arg.startswith("-"):
+                continue
+            if looks_like_odoo_path(arg):
+                candidates.append(arg)
+                break
+
+    for arg in argv[:8]:
+        if looks_like_odoo_path(arg):
+            candidates.append(arg)
+
+    return candidates
+
+
+def read_proc_cmdlines(candidates):
+    proc_dir = "/proc"
+    if not os.path.isdir(proc_dir):
+        return
+
+    wanted_config = normalize(os.environ.get("CONFIG_FILE", ""))
+    for name in os.listdir(proc_dir):
+        if not name.isdigit():
+            continue
+        try:
+            with open(os.path.join(proc_dir, name, "cmdline"), "rb") as handle:
+                raw = handle.read().rstrip(b"\0")
+        except OSError:
+            continue
+        if not raw:
+            continue
+
+        argv = [part.decode(errors="replace") for part in raw.split(b"\0") if part]
+        lowered = " ".join(argv).lower()
+        if "odoo" not in lowered or "install-odoo-module" in lowered or "install-perfect-odoo-mcp" in lowered:
+            continue
+        if "postgres:" in lowered or "node " in lowered:
+            continue
+
+        score = 120
+        if wanted_config and wanted_config in " ".join(normalize(part) for part in argv):
+            score += 30
+        if "--config" in argv or "-c" in argv or any(part.startswith("--config=") for part in argv):
+            score += 5
+        for path in command_candidates_from_argv(argv):
+            add(candidates, path, score, f"process:{name}")
+
+
+def read_systemd_units(candidates):
+    if not shutil.which("systemctl"):
+        return
+    try:
+        units = subprocess.run(
+            ["systemctl", "list-units", "--type=service", "--all", "--no-legend", "--no-pager"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+        ).stdout
+    except Exception:
+        return
+
+    for raw_line in units.splitlines():
+        parts = raw_line.split()
+        if not parts:
+            continue
+        unit = parts[0]
+        if "odoo" not in unit.lower():
+            continue
+        try:
+            show = subprocess.run(
+                ["systemctl", "show", "-p", "ExecStart", "--value", unit],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=5,
+            ).stdout
+        except Exception:
+            continue
+
+        for path in re.findall(r"(?:argv\[\]=|path=)?(/[^\s;]+)", show):
+            if looks_like_odoo_path(path):
+                add(candidates, path, 110, f"systemd:{unit}")
+
+
+candidates = []
+
+for name in ("odoo", "odoo-bin"):
+    add(candidates, shutil.which(name), 100, "PATH")
+
+read_proc_cmdlines(candidates)
+read_systemd_units(candidates)
+
+common_patterns = (
+    "/usr/bin/odoo",
+    "/usr/bin/odoo-bin",
+    "/usr/local/bin/odoo",
+    "/usr/local/bin/odoo-bin",
+    "/opt/odoo/odoo-bin",
+    "/opt/odoo/odoo/odoo-bin",
+    "/opt/odoo*/odoo-bin",
+    "/opt/odoo*/odoo/odoo-bin",
+    "/opt/odoo*/venv/bin/odoo",
+    "/opt/odoo*/.venv/bin/odoo",
+    "/home/odoo/odoo-bin",
+    "/home/odoo/odoo/odoo-bin",
+    "/srv/odoo*/odoo-bin",
+    "/srv/odoo*/odoo/odoo-bin",
+)
+for pattern in common_patterns:
+    for path in glob.glob(pattern):
+        add(candidates, path, 50, "common")
+
+deduped = {}
+for score, path, source in candidates:
+    current = deduped.get(path)
+    if current is None or score > current[0]:
+        deduped[path] = (score, source)
+
+ranked = sorted(((score, path, source) for path, (score, source) in deduped.items()), reverse=True)
+for _, path, source in ranked:
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=15,
+        )
+    except Exception:
+        continue
+    if result.returncode == 0 and "odoo" in result.stdout.lower():
+        print(path)
+        print(source)
+        sys.exit(0)
+
+sys.exit(1)
+PY
+}
+
 systemd_unit_for_pid() {
     local pid="$1"
     command -v systemctl >/dev/null 2>&1 || return 1
@@ -313,12 +500,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$ODOO_BIN" ]]; then
-    if command -v odoo >/dev/null 2>&1; then
-        ODOO_BIN="$(command -v odoo)"
-    elif command -v odoo-bin >/dev/null 2>&1; then
-        ODOO_BIN="$(command -v odoo-bin)"
+    discovery_result="$(discover_odoo_bin || true)"
+    if [[ -n "$discovery_result" ]]; then
+        ODOO_BIN="$(printf '%s\n' "$discovery_result" | sed -n '1p')"
+        ODOO_BIN_SOURCE="$(printf '%s\n' "$discovery_result" | sed -n '2p')"
+        echo "Discovered Odoo executable from ${ODOO_BIN_SOURCE:-auto-detection}: $ODOO_BIN"
     else
-        fail "Could not find odoo or odoo-bin in PATH. Pass --odoo-bin /path/to/odoo."
+        fail "Could not find a runnable Odoo executable. Checked PATH, live Odoo processes, systemd Odoo services, and common install paths. Pass --odoo-bin /path/to/odoo-bin."
     fi
 fi
 
