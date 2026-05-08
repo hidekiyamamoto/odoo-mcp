@@ -67,7 +67,7 @@ From a machine that can access the Odoo installation:
 
 The installer will:
 
-1. Find the local `odoo` or `odoo-bin` executable.
+1. Find the local `odoo` or `odoo-bin` executable from PATH, live Odoo processes, systemd service definitions, or common install paths.
 2. Detect the Odoo version.
 3. Select the matching Git branch when available.
 4. Prefer a high-confidence core addons directory over misleading empty config paths.
@@ -83,6 +83,7 @@ Useful options:
 ./install-odoo-module.sh --help
 ./install-odoo-module.sh --addons-dir /mnt/extra-addons -d YOUR_DATABASE
 ./install-odoo-module.sh --config /etc/odoo/odoo.conf -d YOUR_DATABASE
+./install-odoo-module.sh --odoo-bin /opt/odoo/odoo-bin -d YOUR_DATABASE
 ./install-odoo-module.sh --branch 17.0 -d YOUR_DATABASE
 ```
 
