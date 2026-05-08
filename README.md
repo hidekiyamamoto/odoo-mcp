@@ -61,6 +61,14 @@ The manifest currently targets Odoo `17.0`, but the installer is branch-aware so
 
 From a machine that can access the Odoo installation:
 
+Debian usage:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash
+```
+
+Local checkout usage:
+
 ```bash
 ./install-odoo-module.sh -d YOUR_DATABASE
 ```
