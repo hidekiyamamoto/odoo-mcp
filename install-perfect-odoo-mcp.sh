@@ -2,12 +2,14 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
+INSTALLER_VERSION="v0.1"
 MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
 WORKDIR=""
 FORCE=0
 DATABASE="${DATABASE:-}"
 ODOO_BIN="${ODOO_BIN:-}"
+ODOO_RUNNER="${ODOO_RUNNER:-}"
 ADDONS_DIR="${ADDONS_DIR:-}"
 BRANCH="${BRANCH:-}"
 CONFIG_FILE="${CONFIG_FILE:-}"
@@ -207,13 +209,18 @@ discover_odoo_bin() {
 import glob
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 
 
+def is_file(path):
+    return path and os.path.isfile(path)
+
+
 def is_executable_file(path):
-    return path and os.path.isfile(path) and os.access(path, os.X_OK)
+    return is_file(path) and os.access(path, os.X_OK)
 
 
 def normalize(path):
@@ -222,12 +229,18 @@ def normalize(path):
     return os.path.realpath(os.path.abspath(os.path.expanduser(path)))
 
 
-def add(candidates, path, score, source):
+def add(candidates, path, score, source, runner=""):
     if path and not os.path.isabs(path):
         path = shutil.which(path) or path
+    if runner and not os.path.isabs(runner):
+        runner = shutil.which(runner) or runner
     path = normalize(path)
-    if is_executable_file(path):
-        candidates.append((score, path, source))
+    runner = normalize(runner)
+    if runner:
+        if is_executable_file(runner) and is_file(path):
+            candidates.append((score, path, source, runner))
+    elif is_executable_file(path):
+        candidates.append((score, path, source, ""))
 
 
 def looks_like_odoo_path(path):
@@ -243,7 +256,7 @@ def command_candidates_from_argv(argv):
     candidates = []
     first = argv[0]
     if looks_like_odoo_path(first):
-        candidates.append(first)
+        candidates.append((first, ""))
 
     first_base = os.path.basename(first)
     if first_base.startswith("python") or first_base in {"python", "python3"}:
@@ -251,12 +264,12 @@ def command_candidates_from_argv(argv):
             if arg.startswith("-"):
                 continue
             if looks_like_odoo_path(arg):
-                candidates.append(arg)
+                candidates.append((arg, first))
                 break
 
     for arg in argv[:8]:
         if looks_like_odoo_path(arg):
-            candidates.append(arg)
+            candidates.append((arg, ""))
 
     return candidates
 
@@ -266,6 +279,13 @@ def add_execstart_paths(candidates, text, score, source):
         line = line.strip()
         if not line.startswith("ExecStart"):
             continue
+        value = line.split("=", 1)[1] if "=" in line else line
+        try:
+            argv = shlex.split(value)
+        except ValueError:
+            argv = []
+        for path, runner in command_candidates_from_argv(argv):
+            add(candidates, path, score, source, runner)
         for path in re.findall(r"(/[^\s;]*odoo(?:-bin)?)", line):
             if looks_like_odoo_path(path):
                 add(candidates, path, score, source)
@@ -300,8 +320,8 @@ def read_proc_cmdlines(candidates):
             score += 30
         if "--config" in argv or "-c" in argv or any(part.startswith("--config=") for part in argv):
             score += 5
-        for path in command_candidates_from_argv(argv):
-            add(candidates, path, score, f"process:{name}")
+        for path, runner in command_candidates_from_argv(argv):
+            add(candidates, path, score, f"process:{name}", runner)
 
 
 def read_systemd_units(candidates):
@@ -428,16 +448,21 @@ for pattern in common_patterns:
         add(candidates, path, 50, "common")
 
 deduped = {}
-for score, path, source in candidates:
-    current = deduped.get(path)
+for score, path, source, runner in candidates:
+    key = (path, runner)
+    current = deduped.get(key)
     if current is None or score > current[0]:
-        deduped[path] = (score, source)
+        deduped[key] = (score, source)
 
-ranked = sorted(((score, path, source) for path, (score, source) in deduped.items()), reverse=True)
-for _, path, source in ranked:
+ranked = sorted(
+    ((score, path, source, runner) for (path, runner), (score, source) in deduped.items()),
+    reverse=True,
+)
+for _, path, source, runner in ranked:
     try:
+        command = [runner, path, "--version"] if runner else [path, "--version"]
         result = subprocess.run(
-            [path, "--version"],
+            command,
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -449,6 +474,7 @@ for _, path, source in ranked:
     if result.returncode == 0 and "odoo" in result.stdout.lower():
         print(path)
         print(source)
+        print(runner)
         sys.exit(0)
 
 sys.exit(1)
@@ -570,16 +596,34 @@ if [[ -z "$ODOO_BIN" ]]; then
     if [[ -n "$discovery_result" ]]; then
         ODOO_BIN="$(printf '%s\n' "$discovery_result" | sed -n '1p')"
         ODOO_BIN_SOURCE="$(printf '%s\n' "$discovery_result" | sed -n '2p')"
-        echo "Discovered Odoo executable from ${ODOO_BIN_SOURCE:-auto-detection}: $ODOO_BIN"
+        ODOO_RUNNER="$(printf '%s\n' "$discovery_result" | sed -n '3p')"
+        if [[ -n "$ODOO_RUNNER" ]]; then
+            echo "Discovered Odoo executable from ${ODOO_BIN_SOURCE:-auto-detection}: $ODOO_RUNNER $ODOO_BIN"
+        else
+            echo "Discovered Odoo executable from ${ODOO_BIN_SOURCE:-auto-detection}: $ODOO_BIN"
+        fi
     else
-        fail "Could not find a runnable Odoo executable. Checked PATH, live Odoo processes, systemd Odoo services, and common install paths. Pass --odoo-bin /path/to/odoo-bin."
+        fail "installer $INSTALLER_VERSION: Could not find a runnable Odoo executable. Checked PATH, live Odoo processes, systemd Odoo services, and common install paths. Pass --odoo-bin /path/to/odoo-bin."
     fi
 fi
 
-[[ -x "$ODOO_BIN" ]] || fail "Odoo executable is not runnable: $ODOO_BIN"
+if [[ -n "$ODOO_RUNNER" ]]; then
+    [[ -x "$ODOO_RUNNER" ]] || fail "Odoo runner is not runnable: $ODOO_RUNNER"
+    [[ -f "$ODOO_BIN" ]] || fail "Odoo script does not exist: $ODOO_BIN"
+else
+    [[ -x "$ODOO_BIN" ]] || fail "Odoo executable is not runnable: $ODOO_BIN"
+fi
 command -v git >/dev/null 2>&1 || fail "git is required."
 
-ODOO_VERSION="$("$ODOO_BIN" --version 2>/dev/null | head -n 1 || true)"
+run_odoo() {
+    if [[ -n "$ODOO_RUNNER" ]]; then
+        "$ODOO_RUNNER" "$ODOO_BIN" "$@"
+    else
+        "$ODOO_BIN" "$@"
+    fi
+}
+
+ODOO_VERSION="$(run_odoo --version 2>/dev/null | head -n 1 || true)"
 ODOO_FULL_VERSION="$(printf '%s\n' "$ODOO_VERSION" | sed -nE 's/.* ([0-9]+(\.[0-9]+)+).*/\1/p')"
 ODOO_SERIES="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+\.[0-9]+).*/\1/p')"
 ODOO_MAJOR="$(printf '%s\n' "$ODOO_FULL_VERSION" | sed -nE 's/^([0-9]+).*/\1/p')"
@@ -759,7 +803,7 @@ if [[ -n "$DATABASE" ]]; then
     if [[ -n "$CONFIG_FILE" ]]; then
         ODOO_SHELL_ARGS=(-c "$CONFIG_FILE" "${ODOO_SHELL_ARGS[@]}")
     fi
-    "$ODOO_BIN" "${ODOO_SHELL_ARGS[@]}" <<'PY'
+    run_odoo "${ODOO_SHELL_ARGS[@]}" <<'PY'
 env["ir.module.module"].update_list()
 module = env["ir.module.module"].search([("name", "=", "perfect_odoo_mcp")], limit=1)
 if module and module.state == "installed":
