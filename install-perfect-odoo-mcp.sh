@@ -324,7 +324,7 @@ def read_systemd_units(candidates):
         if not parts:
             continue
         unit = parts[0]
-        if "odoo" not in unit.lower():
+        if "odoo" not in raw_line.lower():
             continue
         try:
             show = subprocess.run(
@@ -338,9 +338,24 @@ def read_systemd_units(candidates):
         except Exception:
             continue
 
+        add_execstart_paths(candidates, show, 110, f"systemd:{unit}")
         for path in re.findall(r"(?:argv\[\]=|path=)?(/[^\s;]+)", show):
             if looks_like_odoo_path(path):
                 add(candidates, path, 110, f"systemd:{unit}")
+
+        try:
+            cat = subprocess.run(
+                ["systemctl", "cat", unit],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=5,
+            ).stdout
+        except Exception:
+            cat = ""
+        if cat:
+            add_execstart_paths(candidates, cat, 115, f"systemd-cat:{unit}")
 
         try:
             unit_path = subprocess.run(
@@ -359,6 +374,15 @@ def read_systemd_units(candidates):
                     add_execstart_paths(candidates, handle.read(), 115, f"systemd-file:{unit}")
             except OSError:
                 pass
+
+        for directory in ("/etc/systemd/system", "/run/systemd/system", "/usr/lib/systemd/system", "/lib/systemd/system"):
+            direct_unit_path = os.path.join(directory, unit)
+            if os.path.isfile(direct_unit_path):
+                try:
+                    with open(direct_unit_path, encoding="utf-8") as handle:
+                        add_execstart_paths(candidates, handle.read(), 115, f"systemd-file:{unit}")
+                except OSError:
+                    pass
 
 
 def read_systemd_unit_files(candidates):
