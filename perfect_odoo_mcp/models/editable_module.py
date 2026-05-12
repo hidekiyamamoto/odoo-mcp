@@ -1,65 +1,66 @@
 import os
 
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import api, fields, models, release
+from odoo.tools import config as odoo_config
 
 
-def _safe_subpath(value):
-    value = (value or "").strip().strip("/")
-    return value and not os.path.isabs(value) and ".." not in value.split("/")
+def _addons_roots():
+    roots = []
+    for path in (odoo_config.get("addons_path") or "").split(","):
+        path = os.path.abspath(os.path.expanduser(path.strip()))
+        if os.path.isdir(path) and path not in roots:
+            roots.append(path)
+    for path in release.addons_paths:
+        path = os.path.abspath(os.path.expanduser(path))
+        if os.path.isdir(path) and path not in roots:
+            roots.append(path)
+    return roots
+
+
+def _module_path(module_name):
+    if not module_name:
+        return ""
+    for root in _addons_roots():
+        path = os.path.abspath(os.path.join(root, module_name))
+        if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
+            os.path.join(path, "__openerp__.py")
+        ):
+            return path
+    return ""
 
 
 class PerfectOdooMcpEditableModule(models.Model):
     _name = "perfect.odoo.mcp.editable.module"
     _description = "Perfect Odoo MCP Editable Module"
-    _order = "sequence, name, id"
+    _rec_name = "module_id"
+    _order = "sequence, id"
 
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
-    name = fields.Char(required=True)
-    repository_path = fields.Char(
-        required=True,
-        help="Absolute path to the Git repository working copy used for AI edits.",
+    module_id = fields.Many2one(
+        "ir.module.module",
+        string="Module",
+        domain=[("state", "=", "installed")],
+        ondelete="cascade",
+        help="Installed Odoo module that the MCP module editor may modify.",
     )
-    module_name = fields.Char(
-        required=True,
-        help="Module folder inside the repository, for example perfect_odoo_mcp or addons/my_module.",
-    )
-    branch = fields.Char(help="Optional expected Git branch for this editable module.")
-    addons_dir = fields.Char(
-        help="Optional Odoo addons directory to deploy into. If empty, the tool uses the installed module location or a writable addons path.",
-    )
-    install_command = fields.Char(
-        help=(
-            "Optional custom deploy command. Placeholders: {repository}, {module}, {module_path}, "
-            "{addons_dir}. Leave empty to use the built-in safe copy and Odoo module update."
-        ),
-    )
-    deploy_upgrade = fields.Boolean(
-        string="Upgrade After Deploy",
-        default=True,
-        help="After built-in deploy, update the apps list and upgrade the installed module when possible.",
-    )
+    module_name = fields.Char(compute="_compute_module_paths", readonly=True)
+    addons_dir = fields.Char(string="Addons Directory", compute="_compute_module_paths", readonly=True)
+    module_path = fields.Char(string="Module Folder", compute="_compute_module_paths", readonly=True)
 
-    module_path = fields.Char(compute="_compute_module_path")
+    _sql_constraints = [
+        (
+            "module_id_unique",
+            "unique(module_id)",
+            "Each installed module can only be allowlisted once.",
+        )
+    ]
 
-    @api.depends("repository_path", "module_name")
-    def _compute_module_path(self):
+    @api.depends("module_id", "module_id.name")
+    def _compute_module_paths(self):
         for record in self:
-            repository = os.path.abspath(os.path.expanduser(record.repository_path or ""))
-            record.module_path = os.path.abspath(os.path.join(repository, record.module_name or ""))
-
-    @api.constrains("repository_path", "module_name", "addons_dir")
-    def _check_paths(self):
-        for record in self:
-            repository = os.path.abspath(os.path.expanduser(record.repository_path or ""))
-            if record.repository_path and not os.path.isabs(os.path.expanduser(record.repository_path)):
-                raise ValidationError("Repository path must be absolute.")
-            if record.module_name and not _safe_subpath(record.module_name):
-                raise ValidationError("Module name must be a relative folder inside the repository.")
-            if record.addons_dir and not os.path.isabs(os.path.expanduser(record.addons_dir)):
-                raise ValidationError("Addons directory must be absolute when set.")
-            if repository and record.module_name:
-                module_path = os.path.abspath(os.path.join(repository, record.module_name))
-                if not module_path.startswith(repository + os.sep):
-                    raise ValidationError("Module folder must stay inside the repository.")
+            module_name = record.module_id.name or ""
+            path = _module_path(module_name)
+            record.module_name = module_name
+            record.module_path = path
+            record.addons_dir = os.path.dirname(path) if path else ""
