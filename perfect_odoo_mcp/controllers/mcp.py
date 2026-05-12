@@ -54,7 +54,9 @@ _logger = logging.getLogger(__name__)
 MCP_PROTOCOL_VERSION = "2024-11-05"
 PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource"
 PROTECTED_RESOURCE_METADATA_SCOPED_PATH = f"{PROTECTED_RESOURCE_METADATA_PATH}{MCP_PATH}"
+MODULE_PROTECTED_RESOURCE_METADATA_PATH = "/perfect_odoo_mcp/.well-known/oauth-protected-resource"
 AUTHORIZATION_SERVER_METADATA_PATH = "/.well-known/oauth-authorization-server"
+MODULE_AUTHORIZATION_SERVER_METADATA_PATH = "/perfect_odoo_mcp/.well-known/oauth-authorization-server"
 AUTH_CODE_TTL_SECONDS = 5 * 60
 ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 8
 REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 90
@@ -384,7 +386,7 @@ def _unauthorized_response():
             ("Content-Type", "application/json"),
             (
                 "WWW-Authenticate",
-                f'Bearer resource_metadata="{_absolute_url(PROTECTED_RESOURCE_METADATA_PATH)}", scope="{OAUTH_SCOPE}"',
+                f'Bearer resource_metadata="{_absolute_url(MODULE_PROTECTED_RESOURCE_METADATA_PATH)}", scope="{OAUTH_SCOPE}"',
             ),
         ],
     )
@@ -1011,7 +1013,11 @@ class OdooMcpPlusController(http.Controller):
         return _json_rpc_error(request_id, -32601, "Method not found")
 
     @http.route(
-        [PROTECTED_RESOURCE_METADATA_PATH, PROTECTED_RESOURCE_METADATA_SCOPED_PATH],
+        [
+            PROTECTED_RESOURCE_METADATA_PATH,
+            PROTECTED_RESOURCE_METADATA_SCOPED_PATH,
+            MODULE_PROTECTED_RESOURCE_METADATA_PATH,
+        ],
         type="http",
         auth="public",
         csrf=False,
@@ -1021,7 +1027,7 @@ class OdooMcpPlusController(http.Controller):
         return _json_response(
             {
                 "resource": _absolute_url(MCP_PATH),
-                "authorization_servers": [_base_url()],
+                "authorization_servers": [_absolute_url(MODULE_AUTHORIZATION_SERVER_METADATA_PATH)],
                 "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
                 "bearer_methods_supported": ["header"],
                 "resource_name": "Perfect Odoo MCP",
@@ -1029,7 +1035,7 @@ class OdooMcpPlusController(http.Controller):
         )
 
     @http.route(
-        AUTHORIZATION_SERVER_METADATA_PATH,
+        [AUTHORIZATION_SERVER_METADATA_PATH, MODULE_AUTHORIZATION_SERVER_METADATA_PATH],
         type="http",
         auth="public",
         csrf=False,
@@ -1038,7 +1044,7 @@ class OdooMcpPlusController(http.Controller):
     def authorization_server_metadata(self, **kwargs):
         return _json_response(
             {
-                "issuer": _base_url(),
+                "issuer": _absolute_url(MODULE_AUTHORIZATION_SERVER_METADATA_PATH),
                 "authorization_endpoint": _absolute_url(OAUTH_AUTHORIZE_PATH),
                 "token_endpoint": _absolute_url(OAUTH_TOKEN_PATH),
                 "registration_endpoint": _absolute_url(OAUTH_REGISTER_PATH),
