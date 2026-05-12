@@ -17,12 +17,10 @@
             <tree string="Editable Modules" editable="bottom">
                 <field name="sequence" widget="handle"/>
                 <field name="active"/>
-                <field name="name"/>
-                <field name="repository_path"/>
+                <field name="module_id"/>
                 <field name="module_name"/>
-                <field name="branch"/>
-                <field name="addons_dir"/>
-                <field name="deploy_upgrade"/>
+                <field name="addons_dir" readonly="1"/>
+                <field name="module_path" readonly="1"/>
             </tree>
         </field>
     </record>
@@ -35,13 +33,9 @@
                 <sheet>
                     <group>
                         <field name="active"/>
-                        <field name="name"/>
-                        <field name="repository_path"/>
-                        <field name="module_name"/>
-                        <field name="branch"/>
-                        <field name="addons_dir"/>
-                        <field name="deploy_upgrade"/>
-                        <field name="install_command"/>
+                        <field name="module_id"/>
+                        <field name="module_name" readonly="1"/>
+                        <field name="addons_dir" readonly="1"/>
                         <field name="module_path" readonly="1"/>
                     </group>
                 </sheet>
@@ -93,7 +87,7 @@
                                 Module editing changes Python/XML/data files on disk. Keep this disabled unless you are actively reviewing code edits.
                             </div>
                         </setting>
-                        <setting id="perfect_odoo_mcp_module_editing_modules" string="Editable Modules" help="Configure one row per editable module. Each row must point to a Git repository and a module subfolder inside that repository.">
+                        <setting id="perfect_odoo_mcp_module_editing_modules" string="Editable Modules" help="Choose the installed modules that the MCP module editor may modify. The module folder and addons directory are detected automatically.">
                             <div class="content-group">
                                 <div class="mt16">
                                     <button name="%(action_editable_modules)d" type="action" string="Open Editable Modules" class="btn btn-secondary"/>
