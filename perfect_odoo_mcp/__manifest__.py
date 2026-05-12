@@ -14,6 +14,7 @@
     "sequence": 1,
     "depends": ["base", "base_setup"],
     "data": [
+        "security/ir.model.access.csv",
         "views/res_config_settings_views.xml",
     ],
     "images": [
