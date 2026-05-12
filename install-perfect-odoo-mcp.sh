@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
-INSTALLER_VERSION="v0.3"
+INSTALLER_VERSION="v0.4"
 MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
 SCRIPT_NAME="install-perfect-odoo-mcp.sh"
@@ -14,6 +14,9 @@ ODOO_RUNNER="${ODOO_RUNNER:-}"
 ADDONS_DIR="${ADDONS_DIR:-}"
 BRANCH="${BRANCH:-}"
 CONFIG_FILE="${CONFIG_FILE:-}"
+LIVE_ODOO_BIN=""
+LIVE_ODOO_RUNNER=""
+LIVE_CONFIG_FILE=""
 
 usage() {
     cat <<EOF
@@ -156,15 +159,56 @@ match_addon_filesystem_rights() {
 find_live_odoo_process() {
     ODOO_BIN="$ODOO_BIN" CONFIG_FILE="$CONFIG_FILE" ADDONS_DIR="$ADDONS_DIR" python3 - <<'PY'
 import os
+import shlex
 
 
 def read_cmdline(pid):
     try:
         with open(f"/proc/{pid}/cmdline", "rb") as handle:
-            data = handle.read().replace(b"\0", b" ").strip()
+            data = handle.read().rstrip(b"\0")
     except OSError:
-        return ""
-    return data.decode(errors="replace")
+        return []
+    return [part.decode(errors="replace") for part in data.split(b"\0") if part]
+
+
+def looks_like_odoo_path(path):
+    base = os.path.basename(path)
+    lowered = path.lower()
+    return base in {"odoo", "odoo-bin"} or "/odoo-bin" in lowered or lowered.endswith("/odoo")
+
+
+def command_parts(argv):
+    runner = ""
+    odoo_bin = ""
+    if not argv:
+        return runner, odoo_bin
+
+    first_base = os.path.basename(argv[0])
+    if first_base.startswith("python") or first_base in {"python", "python3"}:
+        for arg in argv[1:6]:
+            if arg.startswith("-"):
+                continue
+            if looks_like_odoo_path(arg):
+                runner = argv[0]
+                odoo_bin = arg
+                break
+
+    if not odoo_bin:
+        for arg in argv[:8]:
+            if looks_like_odoo_path(arg):
+                odoo_bin = arg
+                break
+
+    return runner, odoo_bin
+
+
+def config_arg(argv):
+    for index, arg in enumerate(argv):
+        if arg in {"-c", "--config"} and index + 1 < len(argv):
+            return argv[index + 1]
+        if arg.startswith("--config="):
+            return arg.split("=", 1)[1]
+    return ""
 
 
 odoo_bin = os.path.realpath(os.environ.get("ODOO_BIN") or "")
@@ -175,8 +219,9 @@ matches = []
 for name in os.listdir("/proc"):
     if not name.isdigit():
         continue
-    cmd = read_cmdline(name)
-    lowered = cmd.lower()
+    argv = read_cmdline(name)
+    cmd = " ".join(shlex.quote(part) for part in argv)
+    lowered = " ".join(argv).lower()
     if "odoo" not in lowered or "install-odoo-module" in lowered or "install-perfect-odoo-mcp" in lowered:
         continue
     if "postgres:" in lowered or "node " in lowered:
@@ -185,24 +230,29 @@ for name in os.listdir("/proc"):
     score = 0
     if "/odoo" in lowered or "odoo-bin" in lowered:
         score += 20
-    if config_file and config_file in cmd:
+    normalized_argv = " ".join(os.path.realpath(part) for part in argv)
+    if config_file and config_file in normalized_argv:
         score += 60
-    if odoo_bin and odoo_bin in cmd:
+    if odoo_bin and odoo_bin in normalized_argv:
         score += 40
-    if addons_dir and addons_dir in cmd:
+    if addons_dir and addons_dir in normalized_argv:
         score += 10
-    if "--config" in cmd or "-c " in cmd:
+    if "--config" in argv or "-c" in argv or any(part.startswith("--config=") for part in argv):
         score += 5
     if score:
-        matches.append((score, int(name), cmd))
+        runner, matched_bin = command_parts(argv)
+        matches.append((score, int(name), cmd, runner, matched_bin, config_arg(argv)))
 
 if not matches:
     raise SystemExit(1)
 
 matches.sort(key=lambda item: (-item[0], item[1]))
-_, pid, cmd = matches[0]
+_, pid, cmd, runner, matched_bin, matched_config = matches[0]
 print(pid)
 print(cmd)
+print(runner)
+print(matched_bin)
+print(matched_config)
 PY
 }
 
@@ -529,7 +579,10 @@ restart_live_odoo() {
         fail "Could not find a live Odoo process to restart. Start Odoo manually, then rerun the installer."
     fi
     pid="$(printf '%s\n' "$process_info" | sed -n '1p')"
-    cmd="$(printf '%s\n' "$process_info" | sed -n '2,$p')"
+    cmd="$(printf '%s\n' "$process_info" | sed -n '2p')"
+    LIVE_ODOO_RUNNER="$(printf '%s\n' "$process_info" | sed -n '3p')"
+    LIVE_ODOO_BIN="$(printf '%s\n' "$process_info" | sed -n '4p')"
+    LIVE_CONFIG_FILE="$(printf '%s\n' "$process_info" | sed -n '5p')"
     echo "Selected live Odoo process PID $pid: $cmd"
 
     if unit="$(systemd_unit_for_pid "$pid")"; then
@@ -845,6 +898,15 @@ echo "Installed $MODULE_NAME into $TARGET_DIR"
 restart_live_odoo
 
 if [[ -n "$DATABASE" ]]; then
+    if [[ -n "$LIVE_ODOO_BIN" ]]; then
+        ODOO_BIN="$LIVE_ODOO_BIN"
+        ODOO_RUNNER="$LIVE_ODOO_RUNNER"
+        echo "Using live Odoo command for app-list refresh: ${ODOO_RUNNER:+$ODOO_RUNNER }$ODOO_BIN"
+    fi
+    if [[ -z "$CONFIG_FILE" && -n "$LIVE_CONFIG_FILE" ]]; then
+        CONFIG_FILE="$LIVE_CONFIG_FILE"
+        echo "Using live Odoo config for app-list refresh: $CONFIG_FILE"
+    fi
     echo "Refreshing Odoo app list for database $DATABASE"
     ODOO_SHELL_ARGS=(shell -d "$DATABASE" --no-http)
     if [[ -n "$CONFIG_FILE" ]]; then
