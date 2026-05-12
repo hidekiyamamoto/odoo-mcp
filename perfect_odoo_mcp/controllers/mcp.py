@@ -56,7 +56,10 @@ PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource"
 PROTECTED_RESOURCE_METADATA_SCOPED_PATH = f"{PROTECTED_RESOURCE_METADATA_PATH}{MCP_PATH}"
 MODULE_PROTECTED_RESOURCE_METADATA_PATH = "/perfect_odoo_mcp/.well-known/oauth-protected-resource"
 AUTHORIZATION_SERVER_METADATA_PATH = "/.well-known/oauth-authorization-server"
+AUTHORIZATION_SERVER_METADATA_SCOPED_PATH = "/.well-known/oauth-authorization-server/perfect_odoo_mcp"
 MODULE_AUTHORIZATION_SERVER_METADATA_PATH = "/perfect_odoo_mcp/.well-known/oauth-authorization-server"
+OPENID_CONFIGURATION_PATH = "/.well-known/openid-configuration"
+OPENID_CONFIGURATION_SCOPED_PATH = "/.well-known/openid-configuration/perfect_odoo_mcp"
 AUTH_CODE_TTL_SECONDS = 5 * 60
 ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 8
 REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 90
@@ -233,6 +236,10 @@ def _absolute_url(path):
     return f"{base_url}{path}" if base_url else path
 
 
+def _issuer_url():
+    return _base_url()
+
+
 def _current_full_path():
     return request.httprequest.full_path.rstrip("?")
 
@@ -387,7 +394,10 @@ def _unauthorized_response():
             ("Content-Type", "application/json"),
             (
                 "WWW-Authenticate",
-                f'Bearer resource_metadata="{_absolute_url(MODULE_PROTECTED_RESOURCE_METADATA_PATH)}", scope="{OAUTH_SCOPE}"',
+                (
+                    f'Bearer resource_metadata="{_absolute_url(PROTECTED_RESOURCE_METADATA_PATH)}", '
+                    f'scope="{OAUTH_SCOPE}"'
+                ),
             ),
             ("Access-Control-Allow-Origin", "*"),
             ("Access-Control-Allow-Headers", "Content-Type, Authorization, MCP-Protocol-Version"),
@@ -480,6 +490,31 @@ def _redirect_with_authorization_error(redirect_uri, state, error):
     if state:
         query["state"] = [state]
     return _redirect_response(urlunparse(parts._replace(query=urlencode(query, doseq=True))))
+
+
+def _protected_resource_metadata():
+    return {
+        "resource": _absolute_url(MCP_PATH),
+        "authorization_servers": [_issuer_url()],
+        "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
+        "bearer_methods_supported": ["header"],
+        "resource_name": "Perfect Odoo MCP",
+    }
+
+
+def _authorization_server_metadata():
+    return {
+        "issuer": _issuer_url(),
+        "authorization_endpoint": _absolute_url(OAUTH_AUTHORIZE_PATH),
+        "token_endpoint": _absolute_url(OAUTH_TOKEN_PATH),
+        "registration_endpoint": _absolute_url(OAUTH_REGISTER_PATH),
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
+        "token_endpoint_auth_methods_supported": ["none"],
+        "code_challenge_methods_supported": ["S256"],
+        "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
+        "client_id_metadata_document_supported": True,
+    }
 
 
 def _redirect_location_for_client(redirect_uri):
@@ -1032,22 +1067,16 @@ class OdooMcpPlusController(http.Controller):
         if request.httprequest.method == "OPTIONS":
             return _json_response({})
 
-        return _json_response(
-            {
-                "resource": _absolute_url(MCP_PATH),
-                "authorization_servers": [_absolute_url(MODULE_AUTHORIZATION_SERVER_METADATA_PATH)],
-                "authorization_endpoint": _absolute_url(OAUTH_AUTHORIZE_PATH),
-                "token_endpoint": _absolute_url(OAUTH_TOKEN_PATH),
-                "registration_endpoint": _absolute_url(OAUTH_REGISTER_PATH),
-                "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
-                "bearer_methods_supported": ["header"],
-                "resource_name": "Perfect Odoo MCP",
-                "client_id_metadata_document_supported": True,
-            }
-        )
+        return _json_response(_protected_resource_metadata())
 
     @http.route(
-        [AUTHORIZATION_SERVER_METADATA_PATH, MODULE_AUTHORIZATION_SERVER_METADATA_PATH],
+        [
+            AUTHORIZATION_SERVER_METADATA_PATH,
+            AUTHORIZATION_SERVER_METADATA_SCOPED_PATH,
+            MODULE_AUTHORIZATION_SERVER_METADATA_PATH,
+            OPENID_CONFIGURATION_PATH,
+            OPENID_CONFIGURATION_SCOPED_PATH,
+        ],
         type="http",
         auth="public",
         csrf=False,
@@ -1057,20 +1086,7 @@ class OdooMcpPlusController(http.Controller):
         if request.httprequest.method == "OPTIONS":
             return _json_response({})
 
-        return _json_response(
-            {
-                "issuer": _absolute_url(MODULE_AUTHORIZATION_SERVER_METADATA_PATH),
-                "authorization_endpoint": _absolute_url(OAUTH_AUTHORIZE_PATH),
-                "token_endpoint": _absolute_url(OAUTH_TOKEN_PATH),
-                "registration_endpoint": _absolute_url(OAUTH_REGISTER_PATH),
-                "response_types_supported": ["code"],
-                "grant_types_supported": ["authorization_code", "refresh_token"],
-                "token_endpoint_auth_methods_supported": ["none"],
-                "code_challenge_methods_supported": ["S256"],
-                "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
-                "client_id_metadata_document_supported": True,
-            }
-        )
+        return _json_response(_authorization_server_metadata())
 
     @http.route(
         OAUTH_AUTHORIZE_PATH,
@@ -1162,6 +1178,10 @@ class OdooMcpPlusController(http.Controller):
             or not _redirect_uri_matches(code_data["redirect_uri"], redirect_uri)
             or code_data["client_id"] != client_id
             or code_data["code_challenge"] != _pkce_challenge(code_verifier)
+            or (
+                kwargs.get("resource")
+                and kwargs.get("resource") != code_data.get("resource")
+            )
         ):
             return _json_response({"error": "invalid_grant"}, status=400)
 
