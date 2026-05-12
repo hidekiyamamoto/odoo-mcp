@@ -430,20 +430,33 @@ MODULE_EDITOR_TOOL = {
     "name": "odoo_module_edit",
     "title": "Odoo Module File Editor",
     "description": (
-        "List, read, write, and delete files inside module folders explicitly allowlisted "
-        "in Perfect Odoo MCP settings. This tool is only advertised when module editing is enabled."
+        "Edit explicitly allowlisted Odoo modules inside separate Git repositories. "
+        "Use list_modules first: each configured item has a repository path and a module subfolder. "
+        "The deploy operation can commit, sync with git pull --ff-only, copy the module into Odoo addons, "
+        "upgrade/install it, and auto-revert the deployed folder and Git HEAD on failure."
     ),
     "inputSchema": {
         "type": "object",
         "properties": {
             "operation": {
                 "type": "string",
-                "enum": ["list_modules", "list_files", "read_file", "write_file", "delete_file"],
+                "enum": [
+                    "list_modules",
+                    "list_files",
+                    "read_file",
+                    "write_file",
+                    "delete_file",
+                    "git_status",
+                    "git_diff",
+                    "commit",
+                    "sync",
+                    "deploy",
+                ],
                 "description": "File operation to perform.",
             },
             "module": {
                 "type": "string",
-                "description": "Allowlisted module name. Required except for list_modules.",
+                "description": "Allowlisted module record name. Required except for list_modules.",
             },
             "path": {
                 "type": "string",
@@ -462,6 +475,26 @@ MODULE_EDITOR_TOOL = {
                 "minimum": 1,
                 "maximum": 1000000,
                 "description": "Maximum bytes to read from a file.",
+            },
+            "message": {
+                "type": "string",
+                "description": "Git commit message for commit or deploy. Deploy refuses dirty repositories unless this is supplied.",
+            },
+            "commitMessage": {
+                "type": "string",
+                "description": "Alias for message.",
+            },
+            "sync": {
+                "type": "boolean",
+                "description": "During deploy, run git pull --ff-only after committing/clean checks.",
+            },
+            "installIfNeeded": {
+                "type": "boolean",
+                "description": "During built-in deploy, install the module if it is visible but not installed.",
+            },
+            "autoRevert": {
+                "type": "boolean",
+                "description": "During deploy, restore the previous deployed folder and Git HEAD if deployment fails. Defaults to true.",
             },
         },
         "required": ["operation"],
