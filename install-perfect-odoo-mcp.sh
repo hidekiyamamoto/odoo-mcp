@@ -2,9 +2,10 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
-INSTALLER_VERSION="v0.1"
+INSTALLER_VERSION="v0.2"
 MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
+SCRIPT_NAME="install-perfect-odoo-mcp.sh"
 WORKDIR=""
 FORCE=0
 DATABASE="${DATABASE:-}"
@@ -15,26 +16,27 @@ BRANCH="${BRANCH:-}"
 CONFIG_FILE="${CONFIG_FILE:-}"
 
 usage() {
-    cat <<'EOF'
+    cat <<EOF
 Install Perfect Odoo MCP into a local Odoo addons directory.
 
 Usage:
-  ./install-odoo-module.sh [options]
+  ./$SCRIPT_NAME [options]
 
 Options:
-  -d, --database DB       Refresh Odoo's app list for this database after copying.
+  -d, --directory PATH    Target Odoo addons directory. Defaults to auto-detection.
+  --database DB           Refresh Odoo's app list and upgrade the module in this database after copying.
   --odoo-bin PATH         Odoo executable to use. Auto-detected from PATH, live processes, systemd, or common paths.
-  --addons-dir PATH       Target addons directory. Defaults to Odoo's core addons directory.
+  --addons-dir PATH       Deprecated alias for --directory.
   --config PATH           Odoo config file to inspect for addons_path fallback candidates.
   --branch BRANCH         Git branch to clone. Defaults to the detected Odoo major version, e.g. 17.0.
   -f, --force             Remove an existing perfect_odoo_mcp/odoo_mcp directory before copying.
   -h, --help              Show this help.
 
 Examples:
-  ./install-odoo-module.sh
-  ./install-odoo-module.sh -d my_database
-  /bin/bash ./install-odoo-module.sh -f -d my_database
-  ./install-odoo-module.sh --addons-dir /mnt/extra-addons -d my_database
+  ./$SCRIPT_NAME
+  ./$SCRIPT_NAME -d /mnt/extra-addons --database my_database
+  /bin/bash ./$SCRIPT_NAME -f -d /mnt/extra-addons --database my_database
+  ./$SCRIPT_NAME --directory /mnt/extra-addons --config /etc/odoo/odoo.conf
 EOF
 }
 
@@ -105,7 +107,7 @@ ERROR: $label already exists at:
 
 The installer will not overwrite or back up existing addon directories automatically.
 Remove it yourself, or rerun with --force to delete it before installing:
-  /bin/bash ./install-odoo-module.sh --force -d ${DATABASE:-YOUR_DATABASE}
+  /bin/bash ./$SCRIPT_NAME --force --database ${DATABASE:-YOUR_DATABASE}
 EOF
     exit 1
 }
@@ -175,7 +177,7 @@ for name in os.listdir("/proc"):
         continue
     cmd = read_cmdline(name)
     lowered = cmd.lower()
-    if "odoo" not in lowered or "install-odoo-module" in lowered:
+    if "odoo" not in lowered or "install-odoo-module" in lowered or "install-perfect-odoo-mcp" in lowered:
         continue
     if "postgres:" in lowered or "node " in lowered:
         continue
@@ -559,7 +561,12 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -d|--database)
+        -d|--directory)
+            ADDONS_DIR="${2:-}"
+            [[ -n "$ADDONS_DIR" ]] || fail "Missing value for $1"
+            shift 2
+            ;;
+        --database)
             DATABASE="${2:-}"
             [[ -n "$DATABASE" ]] || fail "Missing value for $1"
             shift 2
@@ -572,6 +579,7 @@ while [[ $# -gt 0 ]]; do
         --addons-dir)
             ADDONS_DIR="${2:-}"
             [[ -n "$ADDONS_DIR" ]] || fail "Missing value for $1"
+            echo "Warning: --addons-dir is deprecated; use --directory or -d." >&2
             shift 2
             ;;
         --config)
@@ -806,9 +814,9 @@ PY
 )"
 fi
 
-[[ -n "$ADDONS_DIR" ]] || fail "Could not detect Odoo addons directory. Pass --addons-dir /path/to/addons."
+[[ -n "$ADDONS_DIR" ]] || fail "Could not detect Odoo addons directory. Pass --directory /path/to/addons."
 [[ -d "$ADDONS_DIR" ]] || fail "Addons directory does not exist: $ADDONS_DIR"
-[[ -w "$ADDONS_DIR" ]] || fail "Addons directory is not writable: $ADDONS_DIR. Run with sudo or pass a writable --addons-dir."
+[[ -w "$ADDONS_DIR" ]] || fail "Addons directory is not writable: $ADDONS_DIR. Run with sudo or pass a writable --directory."
 
 WORKDIR="$(mktemp -d)"
 CLONE_DIR="$WORKDIR/odoo-mcp"
@@ -873,6 +881,6 @@ if [[ -z "$DATABASE" ]]; then
     cat <<EOF
 
 To refresh the app list from the command line, rerun with:
-  ./install-odoo-module.sh -d YOUR_DATABASE
+  ./$SCRIPT_NAME --database YOUR_DATABASE
 EOF
 fi

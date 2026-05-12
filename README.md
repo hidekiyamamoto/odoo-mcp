@@ -33,7 +33,7 @@ That matters because:
 
 ```text
 .
-├── install-odoo-module.sh      # Smart installer for local Odoo deployments
+├── install-perfect-odoo-mcp.sh # Smart installer for local Odoo deployments
 ├── perfect_odoo_mcp/              # Odoo addon
 │   ├── __manifest__.py
 │   ├── controllers/mcp.py      # MCP, OAuth, tool dispatch
@@ -64,13 +64,13 @@ From a machine that can access the Odoo installation:
 Debian usage:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash -s -- --database YOUR_DATABASE
 ```
 
 Local checkout usage:
 
 ```bash
-./install-odoo-module.sh -d YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --database YOUR_DATABASE
 ```
 
 The installer will:
@@ -81,21 +81,24 @@ The installer will:
 4. Prefer a high-confidence core addons directory over misleading empty config paths.
 5. Clone `https://github.com/hidekiyamamoto/odoo-mcp`.
 6. Copy `perfect_odoo_mcp` into the selected addons directory.
-7. Back up any old `odoo_mcp` addon directory left from the pre-Perfect rename.
+7. Refuse to overwrite an existing `perfect_odoo_mcp` or legacy `odoo_mcp` addon directory unless `--force` is provided.
 8. Refresh Odoo's app list if `--database` is provided.
 9. Upgrade `perfect_odoo_mcp` automatically if it is already installed in that database.
 
 Useful options:
 
 ```bash
-./install-odoo-module.sh --help
-./install-odoo-module.sh --addons-dir /mnt/extra-addons -d YOUR_DATABASE
-./install-odoo-module.sh --config /etc/odoo/odoo.conf -d YOUR_DATABASE
-./install-odoo-module.sh --odoo-bin /opt/odoo/odoo-bin -d YOUR_DATABASE
-./install-odoo-module.sh --branch 17.0 -d YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --help
+./install-perfect-odoo-mcp.sh --directory /mnt/extra-addons --database YOUR_DATABASE
+./install-perfect-odoo-mcp.sh -d /mnt/extra-addons -f --database YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --config /etc/odoo/odoo.conf --database YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --odoo-bin /opt/odoo/odoo-bin --database YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --branch 16.0 --database YOUR_DATABASE
 ```
 
-After copying, restart Odoo if the target addons directory is loaded by a running service. Then open Apps, remove the app search filter if needed, and install **Perfect Odoo MCP**.
+Installer option shorthand is intentionally consistent: `--directory` / `-d` selects the target addons directory, and `--force` / `-f` allows replacing an existing addon directory. Use `--database` for the Odoo database to refresh or upgrade.
+
+After copying, the installer restarts Odoo when it can identify the live systemd service or Docker container. Then open Apps, remove the app search filter if needed, and install **Perfect Odoo MCP**.
 
 ## Odoo Settings
 
@@ -444,7 +447,7 @@ High-risk capabilities are feature-gated:
 Refresh the app list:
 
 ```bash
-./install-odoo-module.sh -d YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --database YOUR_DATABASE
 ```
 
 Or from Odoo UI, enable developer mode and update the Apps list.
