@@ -14,7 +14,7 @@
         <field name="name">perfect.odoo.mcp.editable.module.tree</field>
         <field name="model">perfect.odoo.mcp.editable.module</field>
         <field name="arch" type="xml">
-            <tree string="Editable Modules" editable="bottom">
+            <list string="Editable Modules" editable="bottom">
                 <field name="sequence" widget="handle"/>
                 <field name="active"/>
                 <field name="name"/>
@@ -23,7 +23,7 @@
                 <field name="branch"/>
                 <field name="addons_dir"/>
                 <field name="deploy_upgrade"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -52,7 +52,7 @@
     <record id="action_editable_modules" model="ir.actions.act_window">
         <field name="name">Editable Modules</field>
         <field name="res_model">perfect.odoo.mcp.editable.module</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <menuitem id="menu_perfect_odoo_mcp_editable_modules"
