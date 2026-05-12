@@ -14,6 +14,7 @@ It is an Odoo module, not a sidecar service. The MCP endpoint runs inside Odoo, 
 - **Automatic context bootstrap**: when no AI context exists, the module returns a strict initialization protocol that pushes the client to inspect the install, review custom modules, and save a durable database-specific context.
 - **Optional direct database access**: exposes a PostgreSQL SQL tool only when enabled, with readonly safeguards available.
 - **Custom tool development**: lets an AI draft, read, write, test, reload, and publish custom MCP tools as reviewed Python files.
+- **Git-backed module editing**: optionally allowlists repository/module pairs so an AI can read, edit, diff, commit, sync, and safely deploy selected Odoo modules.
 - **Smart installer**: detects Odoo, chooses the right branch, copies the module, and refreshes the app list.
 - **More coming soon**: the module is designed as a foundation for additional Odoo-native MCP capabilities.
 
@@ -27,6 +28,7 @@ That matters because:
 - Odoo access rules are respected by default.
 - The server can inspect installed modules, models, fields, and addon code directly.
 - Custom tools can be written against the real Odoo ORM.
+- Selected addon repositories can be edited and deployed through a guarded Git workflow.
 - The integration can be installed, configured, backed up, and reviewed like any other Odoo module.
 
 ## Repository Layout
@@ -121,6 +123,12 @@ It also exposes these options:
 
 - **Enable Direct Database Access**
   Advertises the `odoo_sql` tool and enables PostgreSQL access using the configured connection details.
+
+- **Enable Modules Editing**
+  Advertises the `odoo_module_edit` tool. Configure editable modules from the **Editable Modules** list, not by editing addon files directly in the deployed Odoo addons folder.
+
+- **Editable Modules**
+  One row per module that the editor may touch. Each row must define a Git repository working copy and a module subfolder inside that repository. Optional fields let you pin the expected branch, set the deploy addons directory, use a custom install command, and decide whether deploy should upgrade/install the Odoo module.
 
 - **SQL Readonly**
   Keeps SQL sessions readonly and refuses write-looking statements.
@@ -320,6 +328,42 @@ Safety behavior:
 
 Direct SQL bypasses Odoo ORM semantics. Keep it disabled unless there is a clear operational reason to expose it.
 
+## Optional Git-Backed Module Editor
+
+`odoo_module_edit` is advertised only when **Enable Modules Editing** is checked.
+
+The editor is intentionally allowlist-based. In Settings, open **Editable Modules** and create one row for each module that may be edited:
+
+- **Repository Path**: absolute path to a Git working copy.
+- **Module Name**: module subfolder inside that repository, for example `perfect_odoo_mcp` or `addons/my_module`.
+- **Branch**: optional expected Git branch.
+- **Addons Directory**: optional Odoo addons directory for deploy.
+- **Install Command**: optional custom deploy command. Leave empty to use the built-in safe deploy.
+
+Available operations:
+
+- `list_modules`
+- `list_files`
+- `read_file`
+- `write_file`
+- `delete_file`
+- `git_status`
+- `git_diff`
+- `commit`
+- `sync`
+- `deploy`
+
+The built-in deploy workflow:
+
+1. Refuses dirty repositories unless a commit message is supplied.
+2. Commits changes inside the configured module subfolder when requested.
+3. Optionally runs `git pull --ff-only`.
+4. Copies the module subfolder into the selected Odoo addons directory.
+5. Updates the app list and upgrades the module when configured.
+6. Restores the previous deployed addon folder and resets Git HEAD if deployment fails.
+
+This tool can write executable Odoo code. Keep module editing disabled unless you are actively reviewing code changes and deploying from a controlled repository.
+
 ## Optional Custom MCP Tools
 
 Custom tools are enabled only when **Allow Custom Tools Creation** is checked.
@@ -439,6 +483,9 @@ High-risk capabilities are feature-gated:
 - SQL is hidden unless direct database access is enabled.
 - Custom tool management is hidden unless custom tool creation is enabled.
 - Custom tools are draft-only until `EXPOSED = True`.
+- Module editing is hidden unless modules editing is enabled.
+- Module editing can touch only explicitly configured repository/module pairs.
+- Module deploy restores the previous deployed folder and Git HEAD on failure by default.
 
 ## Troubleshooting
 
@@ -487,6 +534,16 @@ Remember:
 - Manager tools appear when the flag is enabled.
 - Draft custom tools with `EXPOSED = False` do not appear in `tools/list`.
 - Published custom tools require `EXPOSED = True` and `custom_tools_reload`.
+
+### Module editor does not list modules
+
+Verify:
+
+- **Enable Modules Editing** is checked.
+- At least one active row exists in **Editable Modules**.
+- The repository path exists and contains `.git`.
+- The module name is a real subfolder inside that repository.
+- The Odoo process user can read the repository and write during deploy.
 
 ## Development Notes
 
