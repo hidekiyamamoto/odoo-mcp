@@ -248,11 +248,11 @@ if not matches:
 
 matches.sort(key=lambda item: (-item[0], item[1]))
 _, pid, cmd, runner, matched_bin, matched_config = matches[0]
-print(pid)
-print(cmd)
-print(runner)
-print(matched_bin)
-print(matched_config)
+print(f"pid={pid}")
+print(f"cmd={cmd}")
+print(f"runner={runner}")
+print(f"bin={matched_bin}")
+print(f"config={matched_config}")
 PY
 }
 
@@ -578,11 +578,11 @@ restart_live_odoo() {
     if ! process_info="$(find_live_odoo_process)"; then
         fail "Could not find a live Odoo process to restart. Start Odoo manually, then rerun the installer."
     fi
-    pid="$(printf '%s\n' "$process_info" | sed -n '1p')"
-    cmd="$(printf '%s\n' "$process_info" | sed -n '2p')"
-    LIVE_ODOO_RUNNER="$(printf '%s\n' "$process_info" | sed -n '3p')"
-    LIVE_ODOO_BIN="$(printf '%s\n' "$process_info" | sed -n '4p')"
-    LIVE_CONFIG_FILE="$(printf '%s\n' "$process_info" | sed -n '5p')"
+    pid="$(printf '%s\n' "$process_info" | sed -n 's/^pid=//p')"
+    cmd="$(printf '%s\n' "$process_info" | sed -n 's/^cmd=//p')"
+    LIVE_ODOO_RUNNER="$(printf '%s\n' "$process_info" | sed -n 's/^runner=//p')"
+    LIVE_ODOO_BIN="$(printf '%s\n' "$process_info" | sed -n 's/^bin=//p')"
+    LIVE_CONFIG_FILE="$(printf '%s\n' "$process_info" | sed -n 's/^config=//p')"
     echo "Selected live Odoo process PID $pid: $cmd"
 
     if unit="$(systemd_unit_for_pid "$pid")"; then
