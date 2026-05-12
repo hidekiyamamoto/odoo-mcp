@@ -28,7 +28,9 @@ from ..const import (
     MCP_PATH,
     MODULE_NAME,
     OAUTH_AUTHORIZE_PATH,
+    OAUTH_OFFLINE_SCOPE,
     OAUTH_REGISTER_PATH,
+    OAUTH_SCOPE,
     OAUTH_TOKEN_PATH,
     SQL_ENABLED_PARAM,
     SQL_READONLY_PARAM,
@@ -53,9 +55,9 @@ MCP_PROTOCOL_VERSION = "2024-11-05"
 PROTECTED_RESOURCE_METADATA_PATH = "/.well-known/oauth-protected-resource"
 PROTECTED_RESOURCE_METADATA_SCOPED_PATH = f"{PROTECTED_RESOURCE_METADATA_PATH}{MCP_PATH}"
 AUTHORIZATION_SERVER_METADATA_PATH = "/.well-known/oauth-authorization-server"
-OAUTH_SCOPE = "odoo:read"
 AUTH_CODE_TTL_SECONDS = 5 * 60
 ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 8
+REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 90
 
 
 def _json_response(payload, status=200):
@@ -119,6 +121,13 @@ def _tool_json(payload):
     return _tool_text(json.dumps(payload, indent=2, default=str))
 
 
+def _tool_structured_json(payload):
+    return {
+        "structuredContent": payload,
+        "content": [{"type": "text", "text": json.dumps(payload, indent=2, default=str)}],
+    }
+
+
 def _tool_error(error):
     return {
         "isError": True,
@@ -147,18 +156,31 @@ def _sql_readonly():
 
 
 def _available_tools():
-    tools = list(TOOLS)
+    tools = [_with_oauth_security(tool) for tool in TOOLS]
     if _sql_enabled():
         sql_tool = dict(SQL_TOOL)
         if _sql_readonly():
             sql_tool["annotations"] = {"readOnlyHint": True}
-        tools.append(sql_tool)
+        tools.append(_with_oauth_security(sql_tool))
     if custom_tools_enabled():
-        tools.extend(CUSTOM_TOOL_MANAGER_TOOLS)
-        tools.extend(custom_tools_cache()["exposed_tools"])
+        tools.extend(_with_oauth_security(tool) for tool in CUSTOM_TOOL_MANAGER_TOOLS)
+        tools.extend(_with_oauth_security(tool) for tool in custom_tools_cache()["exposed_tools"])
     if module_editing_enabled():
-        tools.append(MODULE_EDITOR_TOOL)
+        tools.append(_with_oauth_security(MODULE_EDITOR_TOOL))
     return tools
+
+
+def _with_oauth_security(tool):
+    security_schemes = [{"type": "oauth2", "scopes": [OAUTH_SCOPE]}]
+    item = dict(tool)
+    item.setdefault("securitySchemes", security_schemes)
+
+    # Some ChatGPT app clients still read tool metadata from _meta for
+    # back-compat, while newer clients read the top-level field.
+    meta = dict(item.get("_meta") or {})
+    meta.setdefault("securitySchemes", item["securitySchemes"])
+    item["_meta"] = meta
+    return item
 
 
 def _request_scheme_host():
@@ -264,21 +286,61 @@ def _hash_token(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _create_access_token(code_data):
+def _scope_with_offline_access(scope):
+    scopes = set((scope or "").split())
+    scopes.add(OAUTH_SCOPE)
+    scopes.add(OAUTH_OFFLINE_SCOPE)
+    return " ".join(sorted(scopes))
+
+
+def _create_access_token(code_data, refresh_token=None):
     token = secrets.token_urlsafe(48)
+    refresh_token = refresh_token or secrets.token_urlsafe(48)
     expires_at = Datetime.now() + timedelta(seconds=ACCESS_TOKEN_TTL_SECONDS)
+    refresh_expires_at = Datetime.now() + timedelta(seconds=REFRESH_TOKEN_TTL_SECONDS)
     request.env["perfect.odoo.mcp.oauth.token"].sudo().create(
         {
             "name": f"Perfect Odoo MCP - {code_data['client_id']}",
             "token_hash": _hash_token(token),
+            "refresh_token_hash": _hash_token(refresh_token),
             "user_id": code_data["uid"],
             "client_id": code_data["client_id"],
-            "scope": code_data["scope"],
+            "scope": _scope_with_offline_access(code_data["scope"]),
             "audience": _absolute_url(MCP_PATH),
             "expires_at": expires_at,
+            "refresh_expires_at": refresh_expires_at,
         }
     )
-    return token
+    return token, refresh_token
+
+
+def _refresh_access_token(refresh_token, client_id):
+    if not refresh_token:
+        return None
+
+    oauth_token = request.env["perfect.odoo.mcp.oauth.token"].sudo().search(
+        [
+            ("refresh_token_hash", "=", _hash_token(refresh_token)),
+            ("client_id", "=", client_id),
+            ("audience", "=", _absolute_url(MCP_PATH)),
+            ("refresh_expires_at", ">", Datetime.now()),
+            ("revoked_at", "=", False),
+        ],
+        limit=1,
+    )
+    if not oauth_token or not oauth_token.user_id.active:
+        return None
+
+    oauth_token.write({"last_used_at": Datetime.now()})
+    access_token, refresh_token = _create_access_token(
+        {
+            "client_id": oauth_token.client_id,
+            "scope": oauth_token.scope,
+            "uid": oauth_token.user_id.id,
+        },
+        refresh_token=refresh_token,
+    )
+    return access_token, refresh_token, oauth_token.scope
 
 
 def _bearer_token():
@@ -713,10 +775,10 @@ def _call_tool(name, arguments, user_env):
         if not isinstance(query, str) or not query.strip():
             raise ValueError("query is required.")
         results = _search_odoo_records(query.strip(), user_env)
-        return _tool_json({"results": results})
+        return _tool_structured_json({"results": results})
 
     if name == "fetch":
-        return _tool_json(_fetch_odoo_record(arguments.get("id"), user_env))
+        return _tool_structured_json(_fetch_odoo_record(arguments.get("id"), user_env))
 
     if name == "install_info":
         return _tool_json(_installed_modules_info(user_env))
@@ -960,7 +1022,7 @@ class OdooMcpPlusController(http.Controller):
             {
                 "resource": _absolute_url(MCP_PATH),
                 "authorization_servers": [_base_url()],
-                "scopes_supported": [OAUTH_SCOPE],
+                "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
                 "bearer_methods_supported": ["header"],
                 "resource_name": "Perfect Odoo MCP",
             }
@@ -981,10 +1043,10 @@ class OdooMcpPlusController(http.Controller):
                 "token_endpoint": _absolute_url(OAUTH_TOKEN_PATH),
                 "registration_endpoint": _absolute_url(OAUTH_REGISTER_PATH),
                 "response_types_supported": ["code"],
-                "grant_types_supported": ["authorization_code"],
+                "grant_types_supported": ["authorization_code", "refresh_token"],
                 "token_endpoint_auth_methods_supported": ["none"],
                 "code_challenge_methods_supported": ["S256"],
-                "scopes_supported": [OAUTH_SCOPE],
+                "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
             }
         )
 
@@ -1011,7 +1073,7 @@ class OdooMcpPlusController(http.Controller):
         response_type = kwargs.get("response_type", "")
         code_challenge = kwargs.get("code_challenge", "")
         code_challenge_method = kwargs.get("code_challenge_method", "")
-        scope = kwargs.get("scope") or OAUTH_SCOPE
+        scope = _scope_with_offline_access(kwargs.get("scope") or OAUTH_SCOPE)
         resource = kwargs.get("resource") or _absolute_url(MCP_PATH)
 
         if (
@@ -1047,9 +1109,25 @@ class OdooMcpPlusController(http.Controller):
     @http.route(OAUTH_TOKEN_PATH, type="http", auth="public", csrf=False, methods=["POST"])
     def oauth_token(self, **kwargs):
         grant_type = kwargs.get("grant_type")
+        client_id = kwargs.get("client_id", "")
+
+        if grant_type == "refresh_token":
+            tokens = _refresh_access_token(kwargs.get("refresh_token", ""), client_id)
+            if not tokens:
+                return _json_response({"error": "invalid_grant"}, status=400)
+            access_token, refresh_token, scope = tokens
+            return _json_response(
+                {
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "token_type": "Bearer",
+                    "expires_in": ACCESS_TOKEN_TTL_SECONDS,
+                    "scope": scope,
+                }
+            )
+
         code = kwargs.get("code", "")
         redirect_uri = kwargs.get("redirect_uri", "")
-        client_id = kwargs.get("client_id", "")
         code_verifier = kwargs.get("code_verifier", "")
         code_data = _consume_auth_code(code)
 
@@ -1062,13 +1140,14 @@ class OdooMcpPlusController(http.Controller):
         ):
             return _json_response({"error": "invalid_grant"}, status=400)
 
-        token = _create_access_token(code_data)
+        token, refresh_token = _create_access_token(code_data)
         return _json_response(
             {
                 "access_token": token,
+                "refresh_token": refresh_token,
                 "token_type": "Bearer",
                 "expires_in": ACCESS_TOKEN_TTL_SECONDS,
-                "scope": code_data["scope"],
+                "scope": _scope_with_offline_access(code_data["scope"]),
             }
         )
 
@@ -1089,10 +1168,10 @@ class OdooMcpPlusController(http.Controller):
                 "client_id": client_id,
                 "client_id_issued_at": int(time.time()),
                 "redirect_uris": redirect_uris,
-                "grant_types": ["authorization_code"],
+                "grant_types": ["authorization_code", "refresh_token"],
                 "response_types": ["code"],
                 "token_endpoint_auth_method": "none",
-                "scope": OAUTH_SCOPE,
+                "scope": _scope_with_offline_access(OAUTH_SCOPE),
             },
             status=201,
         )
