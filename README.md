@@ -89,14 +89,14 @@ Useful options:
 
 ```bash
 ./install-perfect-odoo-mcp.sh --help
-./install-perfect-odoo-mcp.sh --directory /mnt/extra-addons --database YOUR_DATABASE
-./install-perfect-odoo-mcp.sh -d /mnt/extra-addons -f --database YOUR_DATABASE
+./install-perfect-odoo-mcp.sh --addons-dir /mnt/extra-addons --database YOUR_DATABASE
+./install-perfect-odoo-mcp.sh -d YOUR_DATABASE -f
 ./install-perfect-odoo-mcp.sh --config /etc/odoo/odoo.conf --database YOUR_DATABASE
 ./install-perfect-odoo-mcp.sh --odoo-bin /opt/odoo/odoo-bin --database YOUR_DATABASE
 ./install-perfect-odoo-mcp.sh --branch 19.0 --database YOUR_DATABASE
 ```
 
-Installer option shorthand is intentionally consistent: `--directory` / `-d` selects the target addons directory, and `--force` / `-f` allows replacing an existing addon directory. Use `--database` for the Odoo database to refresh or upgrade.
+Installer option shorthand is intentionally consistent: `--database` / `-d` selects the Odoo database to refresh or upgrade, and `--force` / `-f` allows replacing an existing addon directory. Use `--addons-dir` when you need to choose a specific addons directory.
 
 After copying, the installer restarts Odoo when it can identify the live systemd service or Docker container. Then open Apps, remove the app search filter if needed, and install **Perfect Odoo MCP**.
 
