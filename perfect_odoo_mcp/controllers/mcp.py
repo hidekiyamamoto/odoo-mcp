@@ -70,7 +70,8 @@ def _json_response(payload, status=200):
         headers=[
             ("Content-Type", "application/json"),
             ("Access-Control-Allow-Origin", "*"),
-            ("Access-Control-Allow-Headers", "Content-Type, Authorization"),
+            ("Access-Control-Allow-Headers", "Content-Type, Authorization, MCP-Protocol-Version"),
+            ("Access-Control-Expose-Headers", "WWW-Authenticate"),
             ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
         ],
     )
@@ -400,6 +401,10 @@ def _unauthorized_response():
                 "WWW-Authenticate",
                 f'Bearer resource_metadata="{_absolute_url(MODULE_PROTECTED_RESOURCE_METADATA_PATH)}", scope="{OAUTH_SCOPE}"',
             ),
+            ("Access-Control-Allow-Origin", "*"),
+            ("Access-Control-Allow-Headers", "Content-Type, Authorization, MCP-Protocol-Version"),
+            ("Access-Control-Expose-Headers", "WWW-Authenticate"),
+            ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
         ],
     )
 
@@ -1033,16 +1038,23 @@ class OdooMcpPlusController(http.Controller):
         type="http",
         auth="public",
         csrf=False,
-        methods=["GET"],
+        methods=["GET", "OPTIONS"],
     )
     def protected_resource_metadata(self, **kwargs):
+        if request.httprequest.method == "OPTIONS":
+            return _json_response({})
+
         return _json_response(
             {
                 "resource": _absolute_url(MCP_PATH),
                 "authorization_servers": [_absolute_url(MODULE_AUTHORIZATION_SERVER_METADATA_PATH)],
+                "authorization_endpoint": _absolute_url(OAUTH_AUTHORIZE_PATH),
+                "token_endpoint": _absolute_url(OAUTH_TOKEN_PATH),
+                "registration_endpoint": _absolute_url(OAUTH_REGISTER_PATH),
                 "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
                 "bearer_methods_supported": ["header"],
                 "resource_name": "Perfect Odoo MCP",
+                "client_id_metadata_document_supported": True,
             }
         )
 
@@ -1051,9 +1063,12 @@ class OdooMcpPlusController(http.Controller):
         type="http",
         auth="public",
         csrf=False,
-        methods=["GET"],
+        methods=["GET", "OPTIONS"],
     )
     def authorization_server_metadata(self, **kwargs):
+        if request.httprequest.method == "OPTIONS":
+            return _json_response({})
+
         return _json_response(
             {
                 "issuer": _absolute_url(MODULE_AUTHORIZATION_SERVER_METADATA_PATH),
@@ -1065,6 +1080,7 @@ class OdooMcpPlusController(http.Controller):
                 "token_endpoint_auth_methods_supported": ["none"],
                 "code_challenge_methods_supported": ["S256"],
                 "scopes_supported": [OAUTH_SCOPE, OAUTH_OFFLINE_SCOPE],
+                "client_id_metadata_document_supported": True,
             }
         )
 
@@ -1124,8 +1140,11 @@ class OdooMcpPlusController(http.Controller):
             query["state"] = [state]
         return _redirect_response(urlunparse(parts._replace(query=urlencode(query, doseq=True))))
 
-    @http.route(OAUTH_TOKEN_PATH, type="http", auth="public", csrf=False, methods=["POST"])
+    @http.route(OAUTH_TOKEN_PATH, type="http", auth="public", csrf=False, methods=["POST", "OPTIONS"])
     def oauth_token(self, **kwargs):
+        if request.httprequest.method == "OPTIONS":
+            return _json_response({})
+
         grant_type = kwargs.get("grant_type")
         client_id = kwargs.get("client_id", "")
 
@@ -1169,8 +1188,11 @@ class OdooMcpPlusController(http.Controller):
             }
         )
 
-    @http.route(OAUTH_REGISTER_PATH, type="http", auth="public", csrf=False, methods=["POST"])
+    @http.route(OAUTH_REGISTER_PATH, type="http", auth="public", csrf=False, methods=["POST", "OPTIONS"])
     def oauth_register(self, **kwargs):
+        if request.httprequest.method == "OPTIONS":
+            return _json_response({})
+
         try:
             payload = json.loads(request.httprequest.get_data(as_text=True) or "{}")
         except json.JSONDecodeError:
