@@ -225,14 +225,14 @@
       <div class="pomcp-icon"><img src="icon.svg" alt=""></div>
       <div>
         <h1>Perfect Odoo MCP</h1>
-        <p class="pomcp-lead">Expose Odoo as a native MCP server with Odoo login, user ACLs, OAuth discovery, optional SQL, custom tools, and safe module editing from Git repositories.</p>
+        <p class="pomcp-lead">Expose Odoo as a native MCP server with Odoo login, user ACLs, OAuth discovery, optional SQL, custom tools, and controlled editing for selected installed modules.</p>
         <div class="pomcp-tags">
           <span class="pomcp-tag">Odoo OAuth</span>
           <span class="pomcp-tag">ACL-aware tools</span>
           <span class="pomcp-tag">Context bootstrap</span>
           <span class="pomcp-tag">Optional SQL</span>
           <span class="pomcp-tag">Custom tools</span>
-          <span class="pomcp-tag">Git-backed module editing</span>
+          <span class="pomcp-tag">Installed module editing</span>
         </div>
       </div>
     </div>
@@ -286,7 +286,7 @@
 
     <section>
       <h2>Custom Tools And Module Editing</h2>
-      <p>Perfect Odoo MCP can help develop new capabilities safely. Draft custom tools live outside the addon directory. Module editing is separately gated and works only for explicitly configured Git repositories and module subfolders.</p>
+      <p>Perfect Odoo MCP can help develop new capabilities safely. Draft custom tools live outside the addon directory. Module editing is separately gated and works only for explicitly selected installed Odoo modules.</p>
       <div class="pomcp-grid">
         <div class="pomcp-card">
           <h3>Custom MCP tools</h3>
@@ -294,15 +294,15 @@
         </div>
         <div class="pomcp-card">
           <h3>Editable module list</h3>
-          <p>Settings provide a real editable list. Each item has a repository path and a module folder inside that repository.</p>
+          <p>Settings provide a real editable list. Each row selects an installed module; the addons directory and module folder are detected automatically.</p>
         </div>
         <div class="pomcp-card">
-          <h3>Git workflow</h3>
-          <p>The module editor can list files, read, write, delete, show diff/status, commit, sync with <code>git pull --ff-only</code>, and deploy.</p>
+          <h3>Focused file editing</h3>
+          <p>The module editor can list files, read, write, and delete files inside the selected module folder only.</p>
         </div>
         <div class="pomcp-card">
-          <h3>Safe deploy</h3>
-          <p>Deploy copies the module into Odoo addons, upgrades or installs it when configured, and auto-restores the previous folder plus Git HEAD on failure.</p>
+          <h3>Readonly paths</h3>
+          <p>The settings list shows the detected addons directory and module folder as readonly values so configuration stays simple.</p>
         </div>
       </div>
     </section>
@@ -341,7 +341,7 @@
             <p><code>odoo_python_lookup</code>: read-only Python addon code search/read.</p>
             <p><code>get-ai-context</code> and <code>set-ai-context</code>: durable instance guidance.</p>
             <p><code>odoo_sql</code>: optional direct PostgreSQL access.</p>
-            <p><code>odoo_module_edit</code>: optional Git-backed module file editor and deploy workflow.</p>
+            <p><code>odoo_module_edit</code>: optional installed module file editor.</p>
           </div>
         </div>
       </div>
