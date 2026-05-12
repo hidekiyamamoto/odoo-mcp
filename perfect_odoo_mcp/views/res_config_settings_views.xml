@@ -10,6 +10,58 @@
             search="[('name', '=', 'Perfect Odoo MCP')]"/>
     <delete model="ir.actions.act_window"
             search="[('name', '=', 'Perfect Odoo MCP'), ('res_model', '=', 'res.config.settings')]"/>
+    <record id="editable_module_view_tree" model="ir.ui.view">
+        <field name="name">perfect.odoo.mcp.editable.module.tree</field>
+        <field name="model">perfect.odoo.mcp.editable.module</field>
+        <field name="arch" type="xml">
+            <tree string="Editable Modules" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="active"/>
+                <field name="name"/>
+                <field name="repository_path"/>
+                <field name="module_name"/>
+                <field name="branch"/>
+                <field name="addons_dir"/>
+                <field name="deploy_upgrade"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="editable_module_view_form" model="ir.ui.view">
+        <field name="name">perfect.odoo.mcp.editable.module.form</field>
+        <field name="model">perfect.odoo.mcp.editable.module</field>
+        <field name="arch" type="xml">
+            <form string="Editable Module">
+                <sheet>
+                    <group>
+                        <field name="active"/>
+                        <field name="name"/>
+                        <field name="repository_path"/>
+                        <field name="module_name"/>
+                        <field name="branch"/>
+                        <field name="addons_dir"/>
+                        <field name="deploy_upgrade"/>
+                        <field name="install_command"/>
+                        <field name="module_path" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_editable_modules" model="ir.actions.act_window">
+        <field name="name">Editable Modules</field>
+        <field name="res_model">perfect.odoo.mcp.editable.module</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_perfect_odoo_mcp_editable_modules"
+              name="Editable Modules"
+              parent="base.menu_config"
+              action="action_editable_modules"
+              sequence="91"
+              groups="base.group_system"/>
+
     <record id="res_config_settings_view_form" model="ir.ui.view">
         <field name="name">res.config.settings.view.form.inherit.perfect.odoo.mcp</field>
         <field name="model">res.config.settings</field>
@@ -41,10 +93,13 @@
                                 Module editing changes Python/XML/data files on disk. Keep this disabled unless you are actively reviewing code edits.
                             </div>
                         </setting>
-                        <setting id="perfect_odoo_mcp_module_editing_modules" string="Editable Modules" help="JSON allowlist of module names and folders available to the module editor tool. Folders may be absolute paths or module folders relative to an Odoo addons path.">
+                        <setting id="perfect_odoo_mcp_module_editing_modules" string="Editable Modules" help="Configure one row per editable module. Each row must point to a Git repository and a module subfolder inside that repository.">
                             <div class="content-group">
                                 <div class="mt16">
-                                    <field name="perfect_odoo_mcp_module_editing_modules" nolabel="1" placeholder='[{"name": "my_module", "folder": "/mnt/extra-addons/my_module"}]'/>
+                                    <button name="%(action_editable_modules)d" type="action" string="Open Editable Modules" class="btn btn-secondary"/>
+                                </div>
+                                <div class="text-muted mt8">
+                                    Legacy JSON config is still read only when no editable module records exist.
                                 </div>
                             </div>
                         </setting>
