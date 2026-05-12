@@ -3,6 +3,8 @@ import re
 
 from odoo.tools import config as odoo_config
 
+from .const import OAUTH_SCOPE
+
 # Static MCP metadata lives outside the HTTP controller so version branches can
 # share one controller shape while keeping Odoo-specific views in XML.
 
@@ -196,6 +198,41 @@ def call(arguments, env, request):
     }
 '''
 
+OAUTH_SECURITY_SCHEMES = [{"type": "oauth2", "scopes": [OAUTH_SCOPE]}]
+SEARCH_RESULT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "url": {"type": "string"},
+    },
+    "required": ["id", "title", "url"],
+    "additionalProperties": True,
+}
+SEARCH_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "results": {
+            "type": "array",
+            "items": SEARCH_RESULT_SCHEMA,
+        },
+    },
+    "required": ["results"],
+    "additionalProperties": False,
+}
+FETCH_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "text": {"type": "string"},
+        "url": {"type": "string"},
+        "metadata": {"type": "object", "additionalProperties": True},
+    },
+    "required": ["id", "title", "text", "url"],
+    "additionalProperties": True,
+}
+
 
 TOOLS = [
     {
@@ -213,6 +250,8 @@ TOOLS = [
             "required": ["query"],
             "additionalProperties": False,
         },
+        "outputSchema": SEARCH_OUTPUT_SCHEMA,
+        "securitySchemes": OAUTH_SECURITY_SCHEMES,
         "annotations": {"readOnlyHint": True},
     },
     {
@@ -230,6 +269,8 @@ TOOLS = [
             "required": ["id"],
             "additionalProperties": False,
         },
+        "outputSchema": FETCH_OUTPUT_SCHEMA,
+        "securitySchemes": OAUTH_SECURITY_SCHEMES,
         "annotations": {"readOnlyHint": True},
     },
     {
@@ -508,4 +549,3 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
         },
     },
 ]
-
