@@ -910,7 +910,7 @@ if [[ -n "$DATABASE" ]]; then
     echo "Refreshing Odoo app list for database $DATABASE"
     ODOO_SHELL_ARGS=(shell -d "$DATABASE" --no-http)
     if [[ -n "$CONFIG_FILE" ]]; then
-        ODOO_SHELL_ARGS=(-c "$CONFIG_FILE" "${ODOO_SHELL_ARGS[@]}")
+        ODOO_SHELL_ARGS=(shell -c "$CONFIG_FILE" -d "$DATABASE" --no-http)
     fi
     run_odoo "${ODOO_SHELL_ARGS[@]}" <<'PY'
 env["ir.module.module"].update_list()
