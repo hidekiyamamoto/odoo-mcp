@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
-INSTALLER_VERSION="v0.2"
+INSTALLER_VERSION="v0.3"
 MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
 SCRIPT_NAME="install-perfect-odoo-mcp.sh"
@@ -23,10 +23,9 @@ Usage:
   ./$SCRIPT_NAME [options]
 
 Options:
-  -d, --directory PATH    Target Odoo addons directory. Defaults to auto-detection.
-  --database DB           Refresh Odoo's app list and upgrade the module in this database after copying.
+  -d, --database DB       Refresh Odoo's app list and upgrade the module in this database after copying.
+  --addons-dir PATH       Target Odoo addons directory. Defaults to auto-detection.
   --odoo-bin PATH         Odoo executable to use. Auto-detected from PATH, live processes, systemd, or common paths.
-  --addons-dir PATH       Deprecated alias for --directory.
   --config PATH           Odoo config file to inspect for addons_path fallback candidates.
   --branch BRANCH         Git branch to clone. Defaults to the detected Odoo major version, e.g. 17.0.
   -f, --force             Remove an existing perfect_odoo_mcp/odoo_mcp directory before copying.
@@ -34,9 +33,10 @@ Options:
 
 Examples:
   ./$SCRIPT_NAME
-  ./$SCRIPT_NAME -d /mnt/extra-addons --database my_database
-  /bin/bash ./$SCRIPT_NAME -f -d /mnt/extra-addons --database my_database
-  ./$SCRIPT_NAME --directory /mnt/extra-addons --config /etc/odoo/odoo.conf
+  ./$SCRIPT_NAME -d my_database
+  /bin/bash ./$SCRIPT_NAME -f -d my_database
+  ./$SCRIPT_NAME --addons-dir /mnt/extra-addons -d my_database
+  ./$SCRIPT_NAME --addons-dir /mnt/extra-addons --config /etc/odoo/odoo.conf
 EOF
 }
 
@@ -561,12 +561,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -d|--directory)
-            ADDONS_DIR="${2:-}"
-            [[ -n "$ADDONS_DIR" ]] || fail "Missing value for $1"
-            shift 2
-            ;;
-        --database)
+        -d|--database)
             DATABASE="${2:-}"
             [[ -n "$DATABASE" ]] || fail "Missing value for $1"
             shift 2
@@ -579,7 +574,6 @@ while [[ $# -gt 0 ]]; do
         --addons-dir)
             ADDONS_DIR="${2:-}"
             [[ -n "$ADDONS_DIR" ]] || fail "Missing value for $1"
-            echo "Warning: --addons-dir is deprecated; use --directory or -d." >&2
             shift 2
             ;;
         --config)
@@ -814,9 +808,9 @@ PY
 )"
 fi
 
-[[ -n "$ADDONS_DIR" ]] || fail "Could not detect Odoo addons directory. Pass --directory /path/to/addons."
+[[ -n "$ADDONS_DIR" ]] || fail "Could not detect Odoo addons directory. Pass --addons-dir /path/to/addons."
 [[ -d "$ADDONS_DIR" ]] || fail "Addons directory does not exist: $ADDONS_DIR"
-[[ -w "$ADDONS_DIR" ]] || fail "Addons directory is not writable: $ADDONS_DIR. Run with sudo or pass a writable --directory."
+[[ -w "$ADDONS_DIR" ]] || fail "Addons directory is not writable: $ADDONS_DIR. Run with sudo or pass a writable --addons-dir."
 
 WORKDIR="$(mktemp -d)"
 CLONE_DIR="$WORKDIR/odoo-mcp"
