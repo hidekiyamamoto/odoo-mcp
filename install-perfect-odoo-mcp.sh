@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/hidekiyamamoto/odoo-mcp"
-INSTALLER_VERSION="v0.4"
+INSTALLER_VERSION="v0.5"
 MODULE_NAME="perfect_odoo_mcp"
 LEGACY_MODULE_NAMES=("odoo_mcp")
 SCRIPT_NAME="install-perfect-odoo-mcp.sh"
@@ -17,6 +17,8 @@ CONFIG_FILE="${CONFIG_FILE:-}"
 LIVE_ODOO_BIN=""
 LIVE_ODOO_RUNNER=""
 LIVE_CONFIG_FILE=""
+LIVE_ODOO_USER=""
+ODOO_RUN_USER=""
 
 usage() {
     cat <<EOF
@@ -159,6 +161,7 @@ match_addon_filesystem_rights() {
 find_live_odoo_process() {
     ODOO_BIN="$ODOO_BIN" CONFIG_FILE="$CONFIG_FILE" ADDONS_DIR="$ADDONS_DIR" python3 - <<'PY'
 import os
+import pwd
 import shlex
 
 
@@ -211,6 +214,13 @@ def config_arg(argv):
     return ""
 
 
+def process_user(pid):
+    try:
+        return pwd.getpwuid(os.stat(f"/proc/{pid}").st_uid).pw_name
+    except Exception:
+        return ""
+
+
 odoo_bin = os.path.realpath(os.environ.get("ODOO_BIN") or "")
 config_file = os.path.realpath(os.environ.get("CONFIG_FILE") or "")
 addons_dir = os.path.realpath(os.environ.get("ADDONS_DIR") or "")
@@ -241,18 +251,19 @@ for name in os.listdir("/proc"):
         score += 5
     if score:
         runner, matched_bin = command_parts(argv)
-        matches.append((score, int(name), cmd, runner, matched_bin, config_arg(argv)))
+        matches.append((score, int(name), cmd, runner, matched_bin, config_arg(argv), process_user(name)))
 
 if not matches:
     raise SystemExit(1)
 
 matches.sort(key=lambda item: (-item[0], item[1]))
-_, pid, cmd, runner, matched_bin, matched_config = matches[0]
+_, pid, cmd, runner, matched_bin, matched_config, matched_user = matches[0]
 print(f"pid={pid}")
 print(f"cmd={cmd}")
 print(f"runner={runner}")
 print(f"bin={matched_bin}")
 print(f"config={matched_config}")
+print(f"user={matched_user}")
 PY
 }
 
@@ -583,6 +594,7 @@ restart_live_odoo() {
     LIVE_ODOO_RUNNER="$(printf '%s\n' "$process_info" | sed -n 's/^runner=//p')"
     LIVE_ODOO_BIN="$(printf '%s\n' "$process_info" | sed -n 's/^bin=//p')"
     LIVE_CONFIG_FILE="$(printf '%s\n' "$process_info" | sed -n 's/^config=//p')"
+    LIVE_ODOO_USER="$(printf '%s\n' "$process_info" | sed -n 's/^user=//p')"
     echo "Selected live Odoo process PID $pid: $cmd"
 
     if unit="$(systemd_unit_for_pid "$pid")"; then
@@ -678,10 +690,23 @@ fi
 command -v git >/dev/null 2>&1 || fail "git is required."
 
 run_odoo() {
+    local command=()
     if [[ -n "$ODOO_RUNNER" ]]; then
-        "$ODOO_RUNNER" "$ODOO_BIN" "$@"
+        command=("$ODOO_RUNNER" "$ODOO_BIN" "$@")
     else
-        "$ODOO_BIN" "$@"
+        command=("$ODOO_BIN" "$@")
+    fi
+
+    if [[ -n "$ODOO_RUN_USER" && "$(id -un)" != "$ODOO_RUN_USER" ]]; then
+        if command -v runuser >/dev/null 2>&1; then
+            runuser -u "$ODOO_RUN_USER" -- "${command[@]}"
+        elif command -v sudo >/dev/null 2>&1; then
+            sudo -H -u "$ODOO_RUN_USER" -- "${command[@]}"
+        else
+            fail "Need runuser or sudo to run Odoo as $ODOO_RUN_USER for database peer authentication."
+        fi
+    else
+        "${command[@]}"
     fi
 }
 
@@ -906,6 +931,10 @@ if [[ -n "$DATABASE" ]]; then
     if [[ -z "$CONFIG_FILE" && -n "$LIVE_CONFIG_FILE" ]]; then
         CONFIG_FILE="$LIVE_CONFIG_FILE"
         echo "Using live Odoo config for app-list refresh: $CONFIG_FILE"
+    fi
+    if [[ -n "$LIVE_ODOO_USER" ]]; then
+        ODOO_RUN_USER="$LIVE_ODOO_USER"
+        echo "Using live Odoo user for app-list refresh: $ODOO_RUN_USER"
     fi
     echo "Refreshing Odoo app list for database $DATABASE"
     ODOO_SHELL_ARGS=(shell -d "$DATABASE" --no-http)
