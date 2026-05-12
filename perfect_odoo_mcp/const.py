@@ -4,6 +4,8 @@ MCP_PATH = "/perfect_odoo_mcp/mcp"
 OAUTH_AUTHORIZE_PATH = "/perfect_odoo_mcp/oauth/authorize"
 OAUTH_TOKEN_PATH = "/perfect_odoo_mcp/oauth/token"
 OAUTH_REGISTER_PATH = "/perfect_odoo_mcp/oauth/register"
+OAUTH_SCOPE = "odoo:read"
+OAUTH_OFFLINE_SCOPE = "offline_access"
 
 AI_CONTEXT_PARAM = "perfect_odoo_mcp.ai_context"
 AUTH_CODE_PARAM_PREFIX = "perfect_odoo_mcp.oauth_code."

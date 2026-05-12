@@ -164,6 +164,8 @@ ChatGPT custom MCP connectors currently require Developer Mode/custom connector 
 
 4. Connect the app. ChatGPT should discover Perfect Odoo MCP's OAuth metadata, open the Odoo login/authorization page, and then show the connector with a `Dev` label while it is still private.
 
+If a previously working ChatGPT connection disappears or starts asking to reconnect after several hours, upgrade the Odoo addon and reconnect the app once. Perfect Odoo MCP advertises `offline_access` and issues refresh tokens so ChatGPT can renew access tokens without losing the link.
+
 5. After connecting, use **Refresh actions** whenever you enable SQL, enable custom tools, publish a custom tool, or update the module.
 
 6. In the first chat, ask the model to run `get-ai-context`. If it returns the bootstrap protocol, follow it before asking business questions.

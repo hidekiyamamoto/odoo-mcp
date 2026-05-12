@@ -8,6 +8,7 @@ class PerfectOdooMcpOAuthToken(models.Model):
 
     name = fields.Char(required=True)
     token_hash = fields.Char(required=True, index=True, copy=False)
+    refresh_token_hash = fields.Char(index=True, copy=False)
     user_id = fields.Many2one(
         "res.users",
         required=True,
@@ -18,6 +19,7 @@ class PerfectOdooMcpOAuthToken(models.Model):
     scope = fields.Char(required=True)
     audience = fields.Char(required=True)
     expires_at = fields.Datetime(required=True, index=True)
+    refresh_expires_at = fields.Datetime(index=True)
     last_used_at = fields.Datetime(readonly=True)
     revoked_at = fields.Datetime(readonly=True)
 
