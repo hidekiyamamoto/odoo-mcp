@@ -31,15 +31,6 @@
       <p style="margin:0; color:#78350f; font-size:16px; line-height:1.55;">This module is not compatible with Odoo's Apps &gt; Import Module upload flow. It defines Python controllers, models, OAuth routes, and MCP endpoints, so it must be installed from an Odoo addons path and loaded by the Odoo server.</p>
     </div>
 
-    <div style="margin-top:32px;">
-      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Current version release changes</h2>
-      <div style="margin-top:14px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff; overflow:hidden;">
-        <p style="margin:0; padding:14px 16px; border-bottom:1px solid #dbe3ea; color:#4b5563; font-size:16px; line-height:1.5;">Added stability for OAuth process in all versions.</p>
-        <p style="margin:0; padding:14px 16px; border-bottom:1px solid #dbe3ea; color:#4b5563; font-size:16px; line-height:1.5;">Improved HTML description for Odoo App Store.</p>
-        <p style="margin:0; padding:14px 16px; color:#4b5563; font-size:16px; line-height:1.5;">Improved code editing MCP tools.</p>
-      </div>
-    </div>
-
     <div style="margin-top:34px; padding-bottom:4px; border-bottom:1px solid #eef2f7;">
       <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Installation</h2>
       <p style="margin:10px 0 0; color:#4b5563; font-size:16px; line-height:1.55;">Run the installer from the Ubuntu / Debian Odoo host or container. It detects the Odoo version, selects the matching branch, copies the addon, restarts Odoo when possible, and refreshes the app list when a database is provided.</p>
@@ -90,7 +81,7 @@
     <div style="margin-top:34px;">
       <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Settings</h2>
       <p style="margin:10px 0 0; color:#4b5563; font-size:16px; line-height:1.55;">The settings page shows the MCP URL and the feature toggles. Editable modules are selected from installed modules; the module path is detected automatically.</p>
-      <img src="settings.svg" alt="Installed Perfect Odoo MCP settings showing the MCP endpoint, custom tools creation, and Direct SQL options." style="display:block; width:100%; max-width:820px; height:auto; margin:18px 0 0; border:1px solid #dbe3ea; border-radius:8px;">
+      <img src="settings.png" alt="Installed Perfect Odoo MCP settings showing the MCP endpoint, custom tools creation, and Direct SQL options." style="display:block; width:100%; max-width:820px; height:auto; margin:18px 0 0; border:1px solid #dbe3ea; border-radius:8px;">
     </div>
 
     <div style="margin-top:34px;">
@@ -101,6 +92,17 @@
         <p style="margin:0 0 10px; color:#4b5563; font-size:16px; line-height:1.55;"><code style="word-break:break-word;">install_info</code> and <code style="word-break:break-word;">odoo_python_lookup</code>: installation and addon code discovery.</p>
         <p style="margin:0; color:#4b5563; font-size:16px; line-height:1.55;"><code style="word-break:break-word;">get-ai-context</code> and <code style="word-break:break-word;">set-ai-context</code>: durable database guidance.</p>
       </div>
+    </div>
+
+    <div style="margin-top:34px;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Changelog</h2>
+      <div style="margin-top:14px; padding:16px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#334155; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace; font-size:14px; line-height:1.55; white-space:pre-wrap; word-break:break-word;">17.0.1.0.0
+Initial release.
+
+17.0.1.0.2
+- Added stability for OAuth process in all versions.
+- Improved HTML description for Odoo App Store.
+- Improved code editing MCP tools.</div>
     </div>
 
   </div>
