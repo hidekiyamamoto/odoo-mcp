@@ -4,349 +4,105 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Perfect Odoo MCP</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 0;
-      background: #ffffff;
-      color: #111827;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      overflow-x: hidden;
-    }
-    .pomcp-page {
-      width: 100%;
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 0 20px 56px;
-      overflow-x: hidden;
-    }
-    .pomcp-hero {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-      padding: 40px;
-      border: 1px solid #dbe3ea;
-      border-radius: 8px;
-      background: #ffffff;
-    }
-    .pomcp-icon {
-      flex: 0 0 auto;
-      width: 128px;
-      height: 128px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid #dbe3ea;
-      border-radius: 24px;
-    }
-    .pomcp-icon img { width: 94px; height: 94px; display: block; }
-    h1, h2, h3, p { overflow-wrap: anywhere; }
-    h1 {
-      margin: 0 0 12px;
-      color: #111827;
-      font-size: 42px;
-      line-height: 1.08;
-      font-weight: 800;
-      letter-spacing: 0;
-    }
-    h2 {
-      margin: 0;
-      color: #111827;
-      font-size: 30px;
-      line-height: 1.2;
-      font-weight: 800;
-      letter-spacing: 0;
-    }
-    h3 {
-      margin: 0 0 8px;
-      color: #111827;
-      font-size: 18px;
-      line-height: 1.25;
-      font-weight: 800;
-      letter-spacing: 0;
-    }
-    p {
-      margin: 12px 0 0;
-      color: #4b5563;
-      font-size: 17px;
-      line-height: 1.55;
-    }
-    code {
-      color: #111827;
-      background: #eef2f7;
-      border-radius: 4px;
-      padding: 1px 4px;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-    .pomcp-lead {
-      max-width: 760px;
-      color: #334155;
-      font-size: 20px;
-      line-height: 1.45;
-    }
-    .pomcp-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 22px;
-    }
-    .pomcp-tag {
-      display: inline-block;
-      max-width: 100%;
-      padding: 5px 11px;
-      border: 1px solid #99f6e4;
-      border-radius: 999px;
-      color: #0f766e;
-      font-size: 14px;
-      line-height: 1.4;
-      font-weight: 800;
-    }
-    section { padding-top: 42px; }
-    .pomcp-note {
-      padding: 18px 20px;
-      border: 1px solid #f59e0b;
-      border-left: 6px solid #d97706;
-      border-radius: 8px;
-      background: #fffbeb;
-    }
-    .pomcp-note h2 { color: #78350f; font-size: 22px; }
-    .pomcp-note p { color: #78350f; }
-    .pomcp-codeblock {
-      margin-top: 16px;
-      padding: 16px 18px;
-      border: 1px solid #dbe3ea;
-      border-radius: 8px;
-      background: #f8fafc;
-    }
-    .pomcp-codeblock code {
-      display: block;
-      padding: 0;
-      background: transparent;
-      font-size: 15px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-    }
-    .pomcp-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 18px;
-      width: 100%;
-    }
-    .pomcp-card {
-      min-width: 0;
-      padding: 20px;
-      border: 1px solid #dbe3ea;
-      border-radius: 8px;
-      background: #ffffff;
-    }
-    .pomcp-steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 1px;
-      margin-top: 22px;
-      border: 1px solid #dbe3ea;
-      border-radius: 8px;
-      background: #dbe3ea;
-      overflow: hidden;
-    }
-    .pomcp-step {
-      min-width: 0;
-      padding: 20px;
-      background: #f8fafc;
-    }
-    .pomcp-step strong {
-      display: block;
-      margin-bottom: 6px;
-      color: #0f766e;
-      font-size: 13px;
-      line-height: 1.3;
-      text-transform: uppercase;
-    }
-    .pomcp-screenshot {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      height: auto;
-      margin-top: 22px;
-      border: 1px solid #dbe3ea;
-      border-radius: 8px;
-    }
-    .pomcp-surface {
-      margin-top: 20px;
-      padding: 22px;
-      border: 1px solid #dbe3ea;
-      border-radius: 8px;
-      background: #f8fafc;
-    }
-    .pomcp-two {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 22px;
-    }
-    .pomcp-green {
-      margin-top: 28px;
-      padding: 18px 20px;
-      border-left: 5px solid #0f766e;
-      border-radius: 6px;
-      background: #ecfdf5;
-      color: #14532d;
-      font-size: 16px;
-      line-height: 1.5;
-      font-weight: 700;
-    }
-    @media (max-width: 720px) {
-      .pomcp-page { padding: 0 12px 40px; }
-      .pomcp-hero {
-        display: block;
-        padding: 24px 18px;
-      }
-      .pomcp-icon {
-        width: 88px;
-        height: 88px;
-        border-radius: 18px;
-        margin-bottom: 18px;
-      }
-      .pomcp-icon img { width: 64px; height: 64px; }
-      h1 { font-size: 31px; }
-      h2 { font-size: 25px; }
-      p, .pomcp-lead { font-size: 16px; }
-      section { padding-top: 34px; }
-      .pomcp-card, .pomcp-step, .pomcp-surface { padding: 16px; }
-      .pomcp-two { grid-template-columns: 1fr; gap: 0; }
-    }
-  </style>
 </head>
-<body>
-  <div class="pomcp-page">
-    <div class="pomcp-hero">
-      <div class="pomcp-icon"><img src="icon.svg" alt=""></div>
-      <div>
-        <h1>Perfect Odoo MCP</h1>
-        <p class="pomcp-lead">Expose Odoo as a native MCP server with Odoo login, user ACLs, OAuth discovery, optional SQL, custom tools, and controlled editing for selected installed modules.</p>
-        <div class="pomcp-tags">
-          <span class="pomcp-tag">Odoo OAuth</span>
-          <span class="pomcp-tag">ACL-aware tools</span>
-          <span class="pomcp-tag">Context bootstrap</span>
-          <span class="pomcp-tag">Optional SQL</span>
-          <span class="pomcp-tag">Custom tools</span>
-          <span class="pomcp-tag">Installed module editing</span>
+<body style="margin:0; padding:0; background:#ffffff; color:#111827; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+  <div style="max-width:960px; margin:0 auto; padding:0 16px 52px; overflow:hidden;">
+
+    <div style="margin-top:22px; padding:30px 28px; border:1px solid #dbe3ea; border-radius:10px; background:#f8fafc;">
+      <div style="display:inline-block; width:116px; max-width:100%; vertical-align:top; margin:0 24px 16px 0;">
+        <img src="icon.svg" alt="" width="104" height="104" style="display:block; width:104px; height:104px; max-width:100%; border:1px solid #dbe3ea; border-radius:22px; background:#ffffff;">
+      </div>
+      <div style="display:inline-block; max-width:720px; vertical-align:top;">
+        <h1 style="margin:0; color:#111827; font-size:38px; line-height:1.12; font-weight:800; letter-spacing:0;">Perfect Odoo MCP</h1>
+        <p style="margin:12px 0 0; color:#334155; font-size:18px; line-height:1.55;">An Odoo addon that exposes an MCP endpoint inside Odoo. Users authenticate with Odoo OAuth, and tools run as the authorized Odoo user.</p>
+      </div>
+      <p style="margin:18px 0 0; color:#0f766e; font-size:14px; line-height:2.1; font-weight:700;">
+        <span style="display:inline-block; margin:0 6px 8px 0; padding:4px 10px; border:1px solid #99f6e4; border-radius:999px; background:#ffffff; white-space:normal;">OAuth discovery</span>
+        <span style="display:inline-block; margin:0 6px 8px 0; padding:4px 10px; border:1px solid #99f6e4; border-radius:999px; background:#ffffff; white-space:normal;">Odoo ACLs</span>
+        <span style="display:inline-block; margin:0 6px 8px 0; padding:4px 10px; border:1px solid #99f6e4; border-radius:999px; background:#ffffff; white-space:normal;">Record tools</span>
+        <span style="display:inline-block; margin:0 6px 8px 0; padding:4px 10px; border:1px solid #99f6e4; border-radius:999px; background:#ffffff; white-space:normal;">Addon code lookup</span>
+        <span style="display:inline-block; margin:0 6px 8px 0; padding:4px 10px; border:1px solid #99f6e4; border-radius:999px; background:#ffffff; white-space:normal;">Optional SQL</span>
+        <span style="display:inline-block; margin:0 6px 8px 0; padding:4px 10px; border:1px solid #99f6e4; border-radius:999px; background:#ffffff; white-space:normal;">Module file editing</span>
+      </p>
+    </div>
+
+    <div style="margin-top:26px; padding:18px 20px; border:1px solid #f59e0b; border-left:6px solid #d97706; border-radius:8px; background:#fffbeb;">
+      <h2 style="margin:0 0 8px; color:#78350f; font-size:22px; line-height:1.25; font-weight:800;">Install as a local addon</h2>
+      <p style="margin:0; color:#78350f; font-size:16px; line-height:1.55;">This module is not compatible with Odoo's Apps &gt; Import Module upload flow. It defines Python controllers, models, OAuth routes, and MCP endpoints, so it must be installed from an Odoo addons path and loaded by the Odoo server.</p>
+    </div>
+
+    <div style="margin-top:32px;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Current version release changes</h2>
+      <div style="margin-top:14px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff; overflow:hidden;">
+        <p style="margin:0; padding:14px 16px; border-bottom:1px solid #dbe3ea; color:#4b5563; font-size:16px; line-height:1.5;">Added stability for OAuth process in all versions.</p>
+        <p style="margin:0; padding:14px 16px; border-bottom:1px solid #dbe3ea; color:#4b5563; font-size:16px; line-height:1.5;">Improved HTML description for Odoo App Store.</p>
+        <p style="margin:0; padding:14px 16px; color:#4b5563; font-size:16px; line-height:1.5;">Improved code editing MCP tools.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:34px; padding-bottom:4px; border-bottom:1px solid #eef2f7;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Installation</h2>
+      <p style="margin:10px 0 0; color:#4b5563; font-size:16px; line-height:1.55;">Run the installer from the Ubuntu / Debian Odoo host or container. It detects the Odoo version, selects the matching branch, copies the addon, restarts Odoo when possible, and refreshes the app list when a database is provided.</p>
+      <div style="margin:14px 0 26px; padding:14px 16px; border:1px solid #dbe3ea; border-radius:8px; background:#f8fafc;">
+        <code style="display:block; color:#111827; background:transparent; font-size:14px; line-height:1.55; white-space:normal; word-break:break-word;">curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash -s -- --database YOUR_DATABASE</code>
+      </div>
+    </div>
+
+    <div style="margin-top:36px;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">What it exposes</h2>
+      <p style="margin:10px 0 0; color:#4b5563; font-size:16px; line-height:1.55;">The MCP endpoint is shown in Odoo Settings after installation. MCP clients connect to that endpoint and use OAuth discovery to start the Odoo authorization flow.</p>
+
+      <div style="margin-top:16px;">
+        <div style="display:inline-block; width:31%; min-width:240px; vertical-align:top; margin:0 1.5% 14px 0; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff;">
+          <h3 style="margin:0 0 6px; color:#111827; font-size:18px; line-height:1.25; font-weight:800;">Record access</h3>
+          <p style="margin:0; color:#4b5563; font-size:15px; line-height:1.55;">Search and read Odoo records as the OAuth-authorized Odoo user. ACLs and record rules still apply.</p>
+        </div>
+        <div style="display:inline-block; width:31%; min-width:240px; vertical-align:top; margin:0 1.5% 14px 0; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff;">
+          <h3 style="margin:0 0 6px; color:#111827; font-size:18px; line-height:1.25; font-weight:800;">Instance context</h3>
+          <p style="margin:0; color:#4b5563; font-size:15px; line-height:1.55;">Store database-specific guidance for future AI sessions, including custom modules, models, and safe lookup patterns.</p>
+        </div>
+        <div style="display:inline-block; width:31%; min-width:240px; vertical-align:top; margin:0 0 14px 0; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff;">
+          <h3 style="margin:0 0 6px; color:#111827; font-size:18px; line-height:1.25; font-weight:800;">Addon inspection</h3>
+          <p style="margin:0; color:#4b5563; font-size:15px; line-height:1.55;">Search and read Python addon code from installed Odoo modules to understand real model behavior.</p>
         </div>
       </div>
     </div>
 
-    <section>
-      <div class="pomcp-note">
-        <h2>Local Odoo addon installation required</h2>
-        <p>Perfect Odoo MCP is not compatible with Odoo's Apps &gt; Import Module upload flow. It defines Python controllers, models, OAuth routes, and MCP endpoints, so it must be installed as a normal local addon from an Odoo addons path and loaded by the Odoo server.</p>
-      </div>
-    </section>
-
-    <section>
-      <h2>Install On Debian-Style Odoo</h2>
-      <p>Run the installer from the Odoo host or container. It detects Odoo, chooses the matching branch, deploys the addon, restarts Odoo when possible, and refreshes the app list when a database is provided.</p>
-      <div class="pomcp-codeblock"><code>curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash -s -- --database YOUR_DATABASE</code></div>
-    </section>
-
-    <section>
-      <h2>Built Inside Odoo</h2>
-      <p>Perfect Odoo MCP is an Odoo app, not an external adapter. MCP calls enter Odoo, authenticate through Odoo, and execute with the authorized user's environment.</p>
-      <div class="pomcp-grid">
-        <div class="pomcp-card">
-          <h3>Odoo login and ACLs</h3>
-          <p>Users authorize through Odoo OAuth. Record access follows Odoo security rules instead of a shared integration user.</p>
+    <div style="margin-top:34px;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Optional capabilities</h2>
+      <p style="margin:10px 0 0; color:#4b5563; font-size:16px; line-height:1.55;">The higher-risk tools are disabled by default and must be enabled from Odoo Settings.</p>
+      <div style="margin-top:16px;">
+        <div style="display:inline-block; width:31%; min-width:240px; vertical-align:top; margin:0 1.5% 14px 0; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff;">
+          <h3 style="margin:0 0 6px; color:#111827; font-size:18px; line-height:1.25; font-weight:800;">Custom MCP tools</h3>
+          <p style="margin:0; color:#4b5563; font-size:15px; line-height:1.55;">Create and test custom Python MCP tools from the Odoo data directory before publishing them.</p>
         </div>
-        <div class="pomcp-card">
-          <h3>Operational discovery</h3>
-          <p>Inventory installed modules, inspect Python addon code, and store instance-specific AI context for future sessions.</p>
+        <div style="display:inline-block; width:31%; min-width:240px; vertical-align:top; margin:0 1.5% 14px 0; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff;">
+          <h3 style="margin:0 0 6px; color:#111827; font-size:18px; line-height:1.25; font-weight:800;">Direct SQL</h3>
+          <p style="margin:0; color:#4b5563; font-size:15px; line-height:1.55;">Expose PostgreSQL access only when needed, with readonly mode and statement checks available.</p>
         </div>
-        <div class="pomcp-card">
-          <h3>Automatic context bootstrap</h3>
-          <p>When context is empty, the server gives the AI a startup protocol for inspecting the database and saving durable guidance.</p>
-        </div>
-        <div class="pomcp-card">
-          <h3>Optional SQL</h3>
-          <p>Expose direct PostgreSQL access only when enabled, with readonly mode and statement guards for safer diagnostics.</p>
+        <div style="display:inline-block; width:31%; min-width:240px; vertical-align:top; margin:0 0 14px 0; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#ffffff;">
+          <h3 style="margin:0 0 6px; color:#111827; font-size:18px; line-height:1.25; font-weight:800;">Module file editing</h3>
+          <p style="margin:0; color:#4b5563; font-size:15px; line-height:1.55;">Allowlist installed modules, then list, read, write, or delete files inside those module folders.</p>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section>
-      <h2>Context That Initializes Itself</h2>
-      <p>The first context request is not a blank answer. If no durable context exists yet, Perfect Odoo MCP tells the consuming AI exactly how to bootstrap itself for this database before doing real work.</p>
-      <div class="pomcp-steps">
-        <div class="pomcp-step"><strong>Read</strong><p>Call <code>get-ai-context</code> and receive the bootstrap protocol.</p></div>
-        <div class="pomcp-step"><strong>Inspect</strong><p>Run <code>install_info</code> and identify custom or unusual modules.</p></div>
-        <div class="pomcp-step"><strong>Verify</strong><p>Use <code>odoo_python_lookup</code> to inspect relevant addon code.</p></div>
-        <div class="pomcp-step"><strong>Persist</strong><p>Write the final operating context with <code>set-ai-context</code>.</p></div>
-      </div>
-    </section>
+    <div style="margin-top:34px;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Settings</h2>
+      <p style="margin:10px 0 0; color:#4b5563; font-size:16px; line-height:1.55;">The settings page shows the MCP URL and the feature toggles. Editable modules are selected from installed modules; the module path is detected automatically.</p>
+      <img src="settings.svg" alt="Installed Perfect Odoo MCP settings showing the MCP endpoint, custom tools creation, and Direct SQL options." style="display:block; width:100%; max-width:820px; height:auto; margin:18px 0 0; border:1px solid #dbe3ea; border-radius:8px;">
+    </div>
 
-    <section>
-      <h2>Custom Tools And Module Editing</h2>
-      <p>Perfect Odoo MCP can help develop new capabilities safely. Draft custom tools live outside the addon directory. Module editing is separately gated and works only for explicitly selected installed Odoo modules.</p>
-      <div class="pomcp-grid">
-        <div class="pomcp-card">
-          <h3>Custom MCP tools</h3>
-          <p>Write draft Python tools with <code>EXPOSED = False</code>, test them with <code>call-custom</code>, then publish only after review.</p>
-        </div>
-        <div class="pomcp-card">
-          <h3>Editable module list</h3>
-          <p>Settings provide a real editable list. Each row selects an installed module; the addons directory and module folder are detected automatically.</p>
-        </div>
-        <div class="pomcp-card">
-          <h3>Focused file editing</h3>
-          <p>The module editor can list files, read, write, and delete files inside the selected module folder only.</p>
-        </div>
-        <div class="pomcp-card">
-          <h3>Readonly paths</h3>
-          <p>The settings list shows the detected addons directory and module folder as readonly values so configuration stays simple.</p>
-        </div>
+    <div style="margin-top:34px;">
+      <h2 style="margin:0; color:#111827; font-size:28px; line-height:1.25; font-weight:800;">Main tools</h2>
+      <div style="margin-top:16px; padding:18px; border:1px solid #dbe3ea; border-radius:8px; background:#f8fafc;">
+        <p style="margin:0 0 10px; color:#4b5563; font-size:16px; line-height:1.55;"><code style="word-break:break-word;">search</code> and <code style="word-break:break-word;">fetch</code>: connector-style record discovery.</p>
+        <p style="margin:0 0 10px; color:#4b5563; font-size:16px; line-height:1.55;"><code style="word-break:break-word;">odoo_search</code> and <code style="word-break:break-word;">odoo_search_read</code>: precise model/domain reads.</p>
+        <p style="margin:0 0 10px; color:#4b5563; font-size:16px; line-height:1.55;"><code style="word-break:break-word;">install_info</code> and <code style="word-break:break-word;">odoo_python_lookup</code>: installation and addon code discovery.</p>
+        <p style="margin:0; color:#4b5563; font-size:16px; line-height:1.55;"><code style="word-break:break-word;">get-ai-context</code> and <code style="word-break:break-word;">set-ai-context</code>: durable database guidance.</p>
       </div>
-    </section>
+    </div>
 
-    <section>
-      <h2>Use With AI Clients</h2>
-      <p>After installation, copy the HTTPS endpoint from Settings and connect it from an MCP-capable client. OAuth metadata is exposed for clients that support discovery and dynamic registration.</p>
-      <img class="pomcp-screenshot" src="settings.svg" alt="Installed Perfect Odoo MCP settings showing the MCP endpoint, custom tools creation, and Direct SQL options.">
-      <div class="pomcp-grid">
-        <div class="pomcp-card">
-          <h3>ChatGPT</h3>
-          <p>Create a custom MCP connector, use the Perfect Odoo MCP endpoint, choose OAuth discovery, authorize in Odoo, then refresh actions when tools change.</p>
-        </div>
-        <div class="pomcp-card">
-          <h3>Gemini CLI</h3>
-          <p>Add the remote HTTP MCP server with <code>gemini mcp add --transport http perfect-odoo-mcp https://your-domain/perfect_odoo_mcp/mcp</code>.</p>
-        </div>
-        <div class="pomcp-card">
-          <h3>First run</h3>
-          <p>Ask the client to call <code>get-ai-context</code>. If context is empty, use medium or high reasoning and complete the bootstrap before business work.</p>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>Tool Surface</h2>
-      <div class="pomcp-surface">
-        <div class="pomcp-two">
-          <div>
-            <p><code>search</code> and <code>fetch</code>: broad connector-style discovery.</p>
-            <p><code>odoo_search</code>: precise model/domain ID lookup.</p>
-            <p><code>odoo_search_read</code>: precise model/domain reads with selected fields.</p>
-            <p><code>install_info</code>: Odoo version, domain, company, and module inventory.</p>
-          </div>
-          <div>
-            <p><code>odoo_python_lookup</code>: read-only Python addon code search/read.</p>
-            <p><code>get-ai-context</code> and <code>set-ai-context</code>: durable instance guidance.</p>
-            <p><code>odoo_sql</code>: optional direct PostgreSQL access.</p>
-            <p><code>odoo_module_edit</code>: optional installed module file editor.</p>
-          </div>
-        </div>
-      </div>
-      <p class="pomcp-green">Perfect Odoo MCP is designed as a foundation for Odoo-native MCP workflows: inspect safely, understand the database, and then act through controlled tools.</p>
-    </section>
   </div>
 </body>
 </html>
