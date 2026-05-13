@@ -112,6 +112,9 @@ ERROR: $label already exists at:
 
 The installer will not overwrite or back up existing addon directories automatically.
 Remove it yourself, or rerun with --force to delete it before installing:
+  curl -fsSL $REPO_URL/main/$SCRIPT_NAME | bash -s -- --force --database ${DATABASE:-YOUR_DATABASE}
+
+If you saved the installer locally, use:
   /bin/bash ./$SCRIPT_NAME --force --database ${DATABASE:-YOUR_DATABASE}
 EOF
     exit 1
