@@ -63,7 +63,7 @@ The manifest currently targets Odoo `17.0`, but the installer is branch-aware so
 
 From a machine that can access the Odoo installation:
 
-Debian usage:
+Ubuntu / Debian usage:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hidekiyamamoto/odoo-mcp/main/install-perfect-odoo-mcp.sh | bash -s -- --database YOUR_DATABASE
@@ -362,7 +362,7 @@ Custom tool files live in the Odoo data directory:
 <odoo data_dir>/perfect_odoo_mcp_custom_tools/
 ```
 
-On many Debian-style installs this is:
+On many Ubuntu / Debian-style installs this is:
 
 ```text
 /var/lib/odoo/.local/share/Odoo/perfect_odoo_mcp_custom_tools/
