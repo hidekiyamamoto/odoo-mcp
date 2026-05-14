@@ -28,9 +28,9 @@ class ResConfigSettings(models.TransientModel):
         readonly=True,
     )
     perfect_odoo_mcp_custom_tools_enabled = fields.Boolean(
-        string="Allow Custom Tools Creation",
+        string="Allow Custom MCP Tools",
         config_parameter=CUSTOM_TOOLS_ENABLED_PARAM,
-        help="Expose MCP tools that can read, write, reload, and test custom Python MCP tools.",
+        help="Expose MCP tools that can read, write, reload, and test custom MCP tools.",
     )
     perfect_odoo_mcp_module_editing_enabled = fields.Boolean(
         string="Enable Modules Editing",

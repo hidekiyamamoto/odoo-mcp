@@ -83,9 +83,9 @@
                             </div>
                             <div class="o_setting_right_pane">
                                 <label for="perfect_odoo_mcp_custom_tools_enabled"/>
-                                <div class="text-muted">Expose MCP tools that let an authorized MCP client read, write, reload, and test custom Python MCP tools.</div>
+                                <div class="text-muted">Expose MCP tools that let an authorized MCP client read, write, reload, and test custom MCP tools.</div>
                                 <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_custom_tools_enabled', '=', False)]}">
-                                    Custom tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.
+                                    Custom MCP tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.
                                 </div>
                             </div>
                         </div>

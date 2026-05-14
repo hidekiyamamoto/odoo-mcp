@@ -36,7 +36,7 @@ def custom_tools_enabled():
 
 def ensure_custom_tools_enabled():
     if not custom_tools_enabled():
-        raise ValueError("Custom tools creation is not enabled in Perfect Odoo MCP settings.")
+        raise ValueError("Custom MCP tools are not enabled in Perfect Odoo MCP settings.")
 
 
 def _ensure_custom_tools_dir():
@@ -49,7 +49,7 @@ def _custom_tool_path(filename):
     _ensure_custom_tools_dir()
     path = os.path.abspath(os.path.join(CUSTOM_TOOLS_DIR, filename))
     if not path.startswith(CUSTOM_TOOLS_DIR + os.sep):
-        raise ValueError("Invalid custom tool path.")
+        raise ValueError("Invalid custom MCP tool path.")
     return path
 
 
@@ -61,12 +61,12 @@ def _custom_tool_files():
 def _load_custom_tool_file(filename):
     path = _custom_tool_path(filename)
     if not os.path.isfile(path):
-        raise FileNotFoundError(f"Custom tool file not found: {filename}")
+        raise FileNotFoundError(f"Custom MCP tool file not found: {filename}")
 
     module_name = f"perfect_odoo_mcp_custom_{filename[:-3]}_{hashlib.sha1(path.encode()).hexdigest()[:8]}"
     spec = importlib.util.spec_from_file_location(module_name, path)
     if not spec or not spec.loader:
-        raise ValueError(f"Could not load custom tool file: {filename}")
+        raise ValueError(f"Could not load custom MCP tool file: {filename}")
 
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -76,13 +76,13 @@ def _load_custom_tool_file(filename):
     exposed = bool(getattr(module, "EXPOSED", False))
 
     if not isinstance(tool, dict):
-        raise ValueError("Custom tool must define TOOL as a dictionary.")
+        raise ValueError("Custom MCP tool must define TOOL as a dictionary.")
     if not isinstance(tool.get("name"), str) or not tool["name"]:
-        raise ValueError("Custom tool TOOL must include a non-empty string name.")
+        raise ValueError("Custom MCP tool TOOL must include a non-empty string name.")
     if not isinstance(tool.get("inputSchema"), dict):
-        raise ValueError("Custom tool TOOL must include an inputSchema dictionary.")
+        raise ValueError("Custom MCP tool TOOL must include an inputSchema dictionary.")
     if not callable(call):
-        raise ValueError("Custom tool must define callable function call(arguments, env, request).")
+        raise ValueError("Custom MCP tool must define callable function call(arguments, env, request).")
 
     return {
         "filename": filename,
@@ -109,14 +109,14 @@ def _load_custom_tools():
             item = _load_custom_tool_file(filename)
             name = item["tool"]["name"]
             if name in builtin_names:
-                raise ValueError(f"Custom tool name collides with a built-in tool: {name}")
+                raise ValueError(f"Custom MCP tool name collides with a built-in tool: {name}")
             if name in loaded:
-                raise ValueError(f"Duplicate custom tool name: {name}")
+                raise ValueError(f"Duplicate custom MCP tool name: {name}")
             loaded[name] = item
             if item["exposed"]:
                 exposed_tools.append(item["tool"])
         except Exception as error:
-            _logger.exception("Custom tool load failed for %s", filename)
+            _logger.exception("Custom MCP tool load failed for %s", filename)
             errors.append({"filename": filename, "error": str(error)})
 
     return {
@@ -174,7 +174,7 @@ def custom_tool_read(arguments):
     filename = arguments.get("filename")
     path = _custom_tool_path(filename)
     if not os.path.isfile(path):
-        raise FileNotFoundError(f"Custom tool file not found: {filename}")
+        raise FileNotFoundError(f"Custom MCP tool file not found: {filename}")
     with open(path, encoding="utf-8") as handle:
         return _tool_text(handle.read())
 
@@ -220,10 +220,9 @@ def test_custom_tool(arguments, user_env):
     elif name:
         item = custom_tools_cache(force=True)["tools"].get(name)
         if not item:
-            raise ValueError(f"Custom tool not found: {name}")
+            raise ValueError(f"Custom MCP tool not found: {name}")
     else:
         raise ValueError("Provide filename or name.")
 
     return custom_tool_result(item["call"](call_arguments, user_env, request))
-
 

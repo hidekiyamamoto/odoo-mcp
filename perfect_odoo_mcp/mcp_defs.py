@@ -175,8 +175,8 @@ EXPOSED = False
 
 TOOL = {
     "name": "example_custom_tool",
-    "title": "Example Custom Tool",
-    "description": "Describe what this custom tool does.",
+    "title": "Example Custom MCP Tool",
+    "description": "Describe what this custom MCP tool does.",
     "inputSchema": {
         "type": "object",
         "properties": {},
@@ -193,7 +193,7 @@ def call(arguments, env, request):
     request: current Odoo HTTP request object
     """
     return {
-        "message": "Hello from a draft custom tool.",
+        "message": "Hello from a draft custom MCP tool.",
         "user": env.user.login,
     }
 '''
@@ -473,9 +473,9 @@ MODULE_EDITOR_TOOL = {
 CUSTOM_TOOL_MANAGER_TOOLS = [
     {
         "name": "custom_tools_list",
-        "title": "List Custom Tools",
+        "title": "List Custom MCP Tools",
         "description": (
-            "List custom Python MCP tool files, show which reviewed tools are exposed, and return the "
+            "List custom MCP tool files, show which reviewed tools are exposed, and return the "
             "required Python template. Use this first when building tools so you know the current drafts, "
             "published tools, load errors, and expected file format."
         ),
@@ -484,15 +484,15 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
     },
     {
         "name": "custom_tool_read",
-        "title": "Read Custom Tool",
+        "title": "Read Custom MCP Tool",
         "description": (
-            "Read a custom Python MCP tool file. Use this before modifying a draft or published custom "
+            "Read a custom MCP tool file. Use this before modifying a draft or published custom "
             "tool so you preserve existing behavior and can review exactly what will execute inside Odoo."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "filename": {"type": "string", "description": "Custom tool filename, for example my_tool.py."},
+                "filename": {"type": "string", "description": "Custom MCP tool filename, for example my_tool.py."},
             },
             "required": ["filename"],
             "additionalProperties": False,
@@ -501,20 +501,20 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
     },
     {
         "name": "custom_tool_write",
-        "title": "Write Custom Tool",
+        "title": "Write Custom MCP Tool",
         "description": (
-            "Create or replace a custom Python MCP tool file. Tool-building workflow: use "
+            "Create or replace a custom MCP tool file. Tool-building workflow: use "
             "odoo_python_lookup with operation='search' and operation='read' to understand the relevant Odoo models and code, submit a "
             "complete .py file here with EXPOSED = False, run it through call-custom until it behaves "
             "correctly, then ask the user to publish it, make it available, or declare it stable. Only "
-            "then set EXPOSED = True and reload custom tools; after the client refreshes actions, the "
+            "then set EXPOSED = True and reload custom MCP tools; after the client refreshes actions, the "
             "tool is directly available in tools/list."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
-                "filename": {"type": "string", "description": "Custom tool filename, for example my_tool.py."},
-                "code": {"type": "string", "description": "Complete Python source code for the custom tool."},
+                "filename": {"type": "string", "description": "Custom MCP tool filename, for example my_tool.py."},
+                "code": {"type": "string", "description": "Complete Python source code for the custom MCP tool."},
             },
             "required": ["filename", "code"],
             "additionalProperties": False,
@@ -522,9 +522,9 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
     },
     {
         "name": "custom_tools_reload",
-        "title": "Reload Custom Tools",
+        "title": "Reload Custom MCP Tools",
         "description": (
-            "Reload custom tool files from disk and report exposed/rejected tools. Use this after writing "
+            "Reload custom MCP tool files from disk and report exposed/rejected tools. Use this after writing "
             "or publishing a tool. Drafts with EXPOSED = False remain callable only through call-custom; "
             "reviewed tools with EXPOSED = True appear in tools/list after the MCP client refreshes actions."
         ),
@@ -532,9 +532,9 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
     },
     {
         "name": "call-custom",
-        "title": "Call Custom Tool",
+        "title": "Call Custom MCP Tool",
         "description": (
-            "Run a custom tool by filename or tool name without exposing it in tools/list. "
+            "Run a custom MCP tool by filename or tool name without exposing it in tools/list. "
             "Use this for draft validation, hypothesis checks, and tool-building tests after "
             "custom_tool_write. Passing tests here does not publish the tool; publish only after review "
             "by setting EXPOSED = True, calling custom_tools_reload, and refreshing the MCP client's actions."
@@ -542,9 +542,9 @@ CUSTOM_TOOL_MANAGER_TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "filename": {"type": "string", "description": "Optional custom tool filename."},
-                "name": {"type": "string", "description": "Optional custom tool name from its TOOL definition."},
-                "arguments": {"type": "object", "description": "Arguments to pass to the custom tool."},
+                "filename": {"type": "string", "description": "Optional custom MCP tool filename."},
+                "name": {"type": "string", "description": "Optional custom MCP tool name from its TOOL definition."},
+                "arguments": {"type": "object", "description": "Arguments to pass to the custom MCP tool."},
             },
             "additionalProperties": False,
         },

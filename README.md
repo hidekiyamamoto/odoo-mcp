@@ -13,7 +13,7 @@ It is an Odoo module, not a sidecar service. The MCP endpoint runs inside Odoo, 
 - **Odoo-aware tools**: search, fetch, model/domain queries, install inventory, AI context, and read-only Python addon lookup.
 - **Automatic context bootstrap**: when no AI context exists, the module returns a strict initialization protocol that pushes the client to inspect the install, review custom modules, and save a durable database-specific context.
 - **Optional direct database access**: exposes a PostgreSQL SQL tool only when enabled, with readonly safeguards available.
-- **Custom tool development**: lets an AI draft, read, write, test, reload, and publish custom MCP tools as reviewed Python files.
+- **Custom MCP tools**: lets an AI draft, read, write, test, reload, and publish custom MCP tools as reviewed Python files.
 - **Installed module editing**: optionally allowlists installed Odoo modules so an AI can list, read, write, and delete files inside those module folders.
 - **Smart installer**: detects Odoo, chooses the right branch, copies the module, and refreshes the app list.
 - **More coming soon**: the module is designed as a foundation for additional Odoo-native MCP capabilities.
@@ -27,7 +27,7 @@ That matters because:
 - The current OAuth user is an actual Odoo user.
 - Odoo access rules are respected by default.
 - The server can inspect installed modules, models, fields, and addon code directly.
-- Custom tools can be written against the real Odoo ORM.
+- Custom MCP tools can be written against the real Odoo ORM.
 - Selected installed addon modules can be edited through an explicit allowlist.
 - The integration can be installed, configured, backed up, and reviewed like any other Odoo module.
 
@@ -56,6 +56,21 @@ The historical Node implementation may exist locally as `odoo-mcp-node/`, but th
 - PostgreSQL credentials only if you enable the optional SQL tool.
 
 This branch targets Odoo `16.0`. The installer is branch-aware, so Odoo 16 installations select this branch automatically when it is published.
+
+## Docker Image Tags
+
+For Docker-based testing, use the official Odoo image with explicit version tags:
+
+```text
+odoo:14.0
+odoo:15.0
+odoo:16.0
+odoo:17.0
+odoo:18.0
+odoo:19.0
+```
+
+Do not use `latest`; it tracks the newest Odoo release and changes over time.
 
 ## Installation
 
@@ -118,8 +133,8 @@ https://your-odoo-domain.example/perfect_odoo_mcp/mcp
 
 It also exposes these options:
 
-- **Allow Custom Tools Creation**
-  Enables tools that can read, write, reload, and call custom Python MCP tools.
+- **Allow Custom MCP Tools**
+  Enables tools that can read, write, reload, and call custom MCP tools.
 
 - **Enable Direct Database Access**
   Advertises the `odoo_sql` tool and enables PostgreSQL access using the configured connection details.
@@ -177,7 +192,7 @@ ChatGPT custom MCP connectors currently require Developer Mode/custom connector 
 
 If a previously working ChatGPT connection disappears or starts asking to reconnect after several hours, upgrade the Odoo addon and reconnect the app once. Perfect Odoo MCP advertises `offline_access` and issues refresh tokens so ChatGPT can renew access tokens without losing the link.
 
-5. After connecting, use **Refresh actions** whenever you enable SQL, enable custom tools, publish a custom tool, or update the module.
+5. After connecting, use **Refresh actions** whenever you enable SQL, enable custom MCP tools, publish a custom MCP tool, or update the module.
 
 6. In the first chat, ask the model to run `get-ai-context`. If it returns the bootstrap protocol, follow it before asking business questions.
 
@@ -229,7 +244,7 @@ Returns a high-level inventory of the Odoo installation:
 - Primary company.
 - Installed modules.
 - Module source classification.
-- SQL and custom tool availability.
+- SQL and custom MCP tool availability.
 
 This is the first tool an AI should call when it needs to understand a new database.
 
@@ -346,7 +361,7 @@ This tool can write executable Odoo code in the installed addon folder. Keep mod
 
 ## Optional Custom MCP Tools
 
-Custom tools are enabled only when **Allow Custom Tools Creation** is checked.
+Custom MCP tools are enabled only when **Allow Custom MCP Tools** is checked.
 
 When enabled, these tools are advertised:
 
@@ -356,7 +371,7 @@ When enabled, these tools are advertised:
 - `custom_tools_reload`
 - `call-custom`
 
-Custom tool files live in the Odoo data directory:
+Custom MCP tool files live in the Odoo data directory:
 
 ```text
 <odoo data_dir>/perfect_odoo_mcp_custom_tools/
@@ -370,9 +385,9 @@ On many Ubuntu / Debian-style installs this is:
 
 They are intentionally outside the installed addon directory so Odoo can write them without modifying packaged module code.
 
-### Custom Tool File Format
+### Custom MCP Tool File Format
 
-Each custom tool is a Python file:
+Each custom MCP tool is a Python file:
 
 ```python
 """Draft custom MCP tool for Perfect Odoo MCP."""
@@ -381,8 +396,8 @@ EXPOSED = False
 
 TOOL = {
     "name": "example_custom_tool",
-    "title": "Example Custom Tool",
-    "description": "Describe what this custom tool does.",
+    "title": "Example Custom MCP Tool",
+    "description": "Describe what this custom MCP tool does.",
     "inputSchema": {
         "type": "object",
         "properties": {
@@ -407,11 +422,11 @@ def call(arguments, env, request):
 - `env`: Odoo `api.Environment` for the OAuth-authorized user.
 - `request`: the current Odoo HTTP request.
 
-### Custom Tool Lifecycle
+### Custom MCP Tool Lifecycle
 
 1. Use `install_info` to understand the installation.
 2. Use `odoo_python_lookup` to inspect relevant Odoo models and custom modules.
-3. Create a complete `.py` custom tool with `EXPOSED = False`.
+3. Create a complete `.py` custom MCP tool with `EXPOSED = False`.
 4. Submit it through `custom_tool_write`.
 5. Test it with `call-custom`.
 6. Review the code and behavior.
@@ -422,7 +437,7 @@ def call(arguments, env, request):
 
 Only `EXPOSED = True` tools are advertised in `tools/list`. Draft tools stay hidden and are callable only through `call-custom`.
 
-Custom tools are executable Python inside Odoo. Keep this feature disabled except during active creation and review.
+Custom MCP tools are executable Python inside Odoo. Keep this feature disabled except during active creation and review.
 
 ## AI Context Workflow
 
@@ -461,8 +476,8 @@ Perfect Odoo MCP is designed around Odoo's own security model.
 High-risk capabilities are feature-gated:
 
 - SQL is hidden unless direct database access is enabled.
-- Custom tool management is hidden unless custom tool creation is enabled.
-- Custom tools are draft-only until `EXPOSED = True`.
+- Custom MCP tool management is hidden unless custom MCP tools are enabled.
+- Custom MCP tools are draft-only until `EXPOSED = True`.
 - Module editing is hidden unless modules editing is enabled.
 - Module editing can touch only explicitly selected installed modules.
 
@@ -504,15 +519,15 @@ Verify:
 
 Enable **Direct Database Access** in Settings and refresh the MCP client's actions.
 
-### Custom tools do not appear
+### Custom MCP tools do not appear
 
-Enable **Allow Custom Tools Creation** in Settings and refresh actions.
+Enable **Allow Custom MCP Tools** in Settings and refresh actions.
 
 Remember:
 
 - Manager tools appear when the flag is enabled.
-- Draft custom tools with `EXPOSED = False` do not appear in `tools/list`.
-- Published custom tools require `EXPOSED = True` and `custom_tools_reload`.
+- Draft custom MCP tools with `EXPOSED = False` do not appear in `tools/list`.
+- Published custom MCP tools require `EXPOSED = True` and `custom_tools_reload`.
 
 ### Module editor does not list modules
 

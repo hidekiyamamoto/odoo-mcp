@@ -27,7 +27,7 @@
     <text x="0" y="58" fill="#f8fafc" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800">Perfect Odoo MCP</text>
     <text x="0" y="118" fill="#a7f3d0" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Odoo-native MCP server</text>
     <text x="0" y="178" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">OAuth through Odoo login. Tools run as the authorized user.</text>
-    <text x="0" y="220" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">ACL-aware records, optional SQL, and custom Python MCP tools.</text>
+    <text x="0" y="220" fill="#e2e8f0" font-family="Inter, Arial, sans-serif" font-size="25">ACL-aware records, optional SQL, and custom MCP tools.</text>
     <g transform="translate(0 268)" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">
       <rect x="0" y="0" width="168" height="44" rx="22" fill="#134e4a"/>
       <text x="22" y="29" fill="#ccfbf1">Odoo Login</text>
@@ -35,8 +35,8 @@
       <text x="213" y="29" fill="#cffafe">ACLs</text>
       <rect x="320" y="0" width="154" height="44" rx="22" fill="#334155"/>
       <text x="344" y="29" fill="#f8fafc">Direct SQL</text>
-      <rect x="494" y="0" width="190" height="44" rx="22" fill="#14532d"/>
-      <text x="518" y="29" fill="#dcfce7">Custom Tools</text>
+      <rect x="494" y="0" width="230" height="44" rx="22" fill="#14532d"/>
+      <text x="514" y="29" fill="#dcfce7">Custom MCP Tools</text>
     </g>
   </g>
 </svg>
