@@ -84,7 +84,7 @@
                             <div class="o_setting_right_pane">
                                 <label for="perfect_odoo_mcp_custom_tools_enabled"/>
                                 <div class="text-muted">Expose MCP tools that let an authorized MCP client read, write, reload, and test custom MCP tools.</div>
-                                <div class="text-warning mt8" invisible="not perfect_odoo_mcp_custom_tools_enabled">
+                                <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_custom_tools_enabled', '=', False)]}">
                                     Custom MCP tools are executable Python files. Keep this disabled unless you are actively creating or reviewing tools.
                                 </div>
                             </div>
@@ -100,7 +100,7 @@
                             <div class="o_setting_right_pane">
                                 <label for="perfect_odoo_mcp_module_editing_enabled"/>
                                 <div class="text-muted">Expose one MCP tool that can list, read, write, and delete files inside explicitly allowlisted module folders.</div>
-                                <div class="text-warning mt8" invisible="not perfect_odoo_mcp_module_editing_enabled">
+                                <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_module_editing_enabled', '=', False)]}">
                                     Module editing changes Python/XML/data files on disk. Keep this disabled unless you are actively reviewing code edits.
                                 </div>
                             </div>
@@ -130,13 +130,13 @@
                             <div class="o_setting_right_pane">
                                 <label for="perfect_odoo_mcp_sql_enabled"/>
                                 <div class="text-muted">Expose a direct PostgreSQL MCP tool. Keep this disabled unless you explicitly need database-level access.</div>
-                                <div class="text-warning mt8" invisible="not perfect_odoo_mcp_sql_enabled">
+                                <div class="text-warning mt8" attrs="{'invisible': [('perfect_odoo_mcp_sql_enabled', '=', False)]}">
                                     Direct SQL access bypasses Odoo ORM protections. Use a restricted PostgreSQL user whenever possible.
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_readonly_setting" invisible="not perfect_odoo_mcp_sql_enabled">
+                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_readonly_setting" attrs="{'invisible': [('perfect_odoo_mcp_sql_enabled', '=', False)]}">
                             <div class="o_setting_left_pane">
                                 <field name="perfect_odoo_mcp_sql_readonly"/>
                             </div>
@@ -146,7 +146,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_connection_setting" invisible="not perfect_odoo_mcp_sql_enabled">
+                        <div class="col-12 col-lg-6 o_setting_box" id="perfect_odoo_mcp_sql_connection_setting" attrs="{'invisible': [('perfect_odoo_mcp_sql_enabled', '=', False)]}">
                             <div class="o_setting_left_pane"/>
                             <div class="o_setting_right_pane">
                                 <span class="o_form_label">SQL Connection</span>
