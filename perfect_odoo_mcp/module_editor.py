@@ -1,6 +1,7 @@
 import json
 import importlib.util
 import os
+import sys
 import tempfile
 
 import odoo.addons
@@ -75,7 +76,58 @@ def _odoo_module_path(module_name):
         return odoo.modules.get_module_path(module_name)
 
 
-def _python_module_path(module_name):
+def _manifest_dir_from_path(path, module_name):
+    if not path:
+        return ""
+    path = os.path.abspath(os.path.expanduser(path))
+    if os.path.basename(path) == "__init__.py":
+        path = os.path.dirname(path)
+    elif path.endswith((".pyc", ".pyo")):
+        parts = path.split(os.sep)
+        if "__pycache__" in parts:
+            path = os.sep.join(parts[: parts.index("__pycache__")])
+        else:
+            path = os.path.dirname(path)
+    elif os.path.isfile(path):
+        path = os.path.dirname(path)
+
+    while path and os.path.basename(path) != module_name:
+        parent = os.path.dirname(path)
+        if parent == path:
+            return ""
+        path = parent
+
+    if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(os.path.join(path, "__openerp__.py")):
+        return path
+    return ""
+
+
+def _runtime_module_path(module_name):
+    prefix = f"odoo.addons.{module_name}"
+    for name in (prefix, f"{prefix}.models", f"{prefix}.controllers"):
+        module = sys.modules.get(name)
+        locations = getattr(module, "__path__", None) if module else None
+        if locations:
+            for location in locations:
+                path = _manifest_dir_from_path(location, module_name)
+                if path:
+                    return path
+        for attr in ("__file__", "__cached__"):
+            path = _manifest_dir_from_path(getattr(module, attr, ""), module_name) if module else ""
+            if path:
+                return path
+
+    for name, module in sorted(sys.modules.items()):
+        if not name.startswith(prefix + "."):
+            continue
+        for attr in ("__file__", "__cached__"):
+            path = _manifest_dir_from_path(getattr(module, attr, ""), module_name)
+            if path:
+                return path
+    return ""
+
+
+def _spec_module_path(module_name):
     try:
         spec = importlib.util.find_spec(f"odoo.addons.{module_name}")
     except (ImportError, ValueError):
@@ -83,14 +135,18 @@ def _python_module_path(module_name):
     locations = getattr(spec, "submodule_search_locations", None) if spec else None
     if not locations:
         return ""
-    path = os.path.abspath(os.path.expanduser(list(locations)[0]))
-    if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(os.path.join(path, "__openerp__.py")):
-        return path
+    for location in locations:
+        path = _manifest_dir_from_path(location, module_name)
+        if path:
+            return path
     return ""
 
 
 def _find_module_path(module_name):
-    path = _python_module_path(module_name)
+    path = _runtime_module_path(module_name)
+    if path:
+        return path
+    path = _spec_module_path(module_name)
     if path:
         return path
     path = _odoo_module_path(module_name)
@@ -103,20 +159,6 @@ def _find_module_path(module_name):
         ):
             return path
     return ""
-
-
-def _module_path_candidates(module_name):
-    if not module_name:
-        return []
-    candidates = []
-    for root in _addons_roots():
-        path = os.path.abspath(os.path.join(root, module_name))
-        if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
-            os.path.join(path, "__openerp__.py")
-        ):
-            if path not in candidates:
-                candidates.append(path)
-    return candidates
 
 
 def _parse_module_lines(raw_value):
@@ -174,7 +216,6 @@ def _record_entries():
             "module_path": record.module_path or _find_module_path(record.module_id.name),
             "addons_dir": record.addons_dir,
             "path_source": record.module_path_source,
-            "path_candidates": _module_path_candidates(record.module_id.name),
             "legacy": False,
         }
         for record in records
@@ -212,7 +253,6 @@ def editable_modules():
             "module_path": module_path,
             "addons_dir": entry.get("addons_dir") or os.path.dirname(module_path),
             "path_source": entry.get("path_source") or ("legacy" if entry.get("legacy") else "configured"),
-            "path_candidates": entry.get("path_candidates") or _module_path_candidates(name),
             "legacy": bool(entry.get("legacy")),
         }
     return modules
@@ -395,7 +435,6 @@ def module_edit(arguments):
                         "modulePath": entry["module_path"],
                         "addonsDir": entry["addons_dir"],
                         "pathSource": entry.get("path_source"),
-                        "pathCandidates": entry.get("path_candidates") or [],
                         "legacy": entry["legacy"],
                     }
                     for entry in sorted(editable_modules().values(), key=lambda item: item["name"])
