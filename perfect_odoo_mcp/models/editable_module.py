@@ -1,9 +1,7 @@
-import importlib.util
 import os
 import sys
 
 import odoo.addons
-import odoo.modules
 from odoo import api, fields, models
 from odoo.tools import config as odoo_config
 
@@ -27,13 +25,6 @@ def _addons_roots():
         if os.path.isdir(path) and path not in roots:
             roots.append(path)
     return roots
-
-
-def _odoo_module_path(module_name):
-    try:
-        return odoo.modules.get_module_path(module_name, display_warning=False)
-    except TypeError:
-        return odoo.modules.get_module_path(module_name)
 
 
 def _manifest_dir_from_path(path, module_name):
@@ -87,40 +78,10 @@ def _runtime_module_path(module_name):
     return ""
 
 
-def _spec_module_path(module_name):
-    try:
-        spec = importlib.util.find_spec(f"odoo.addons.{module_name}")
-    except (ImportError, ValueError):
-        return ""
-    locations = getattr(spec, "submodule_search_locations", None) if spec else None
-    if not locations:
-        return ""
-    for location in locations:
-        path = _manifest_dir_from_path(location, module_name)
-        if path:
-            return path
-    return ""
-
-
 def _module_path(module_name):
     if not module_name:
         return ""
-    path = _runtime_module_path(module_name)
-    if path:
-        return path
-    path = _spec_module_path(module_name)
-    if path:
-        return path
-    path = _odoo_module_path(module_name)
-    if path:
-        return os.path.abspath(os.path.expanduser(path))
-    for root in _addons_roots():
-        path = os.path.abspath(os.path.join(root, module_name))
-        if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
-            os.path.join(path, "__openerp__.py")
-        ):
-            return path
-    return ""
+    return _runtime_module_path(module_name)
 
 
 class PerfectOdooMcpEditableModule(models.Model):
@@ -157,20 +118,12 @@ class PerfectOdooMcpEditableModule(models.Model):
         for record in self:
             module_name = record.module_id.name or ""
             runtime_path = _runtime_module_path(module_name) if module_name else ""
-            spec_path = _spec_module_path(module_name) if module_name else ""
-            odoo_path = _odoo_module_path(module_name) if module_name else ""
             if runtime_path:
                 path = runtime_path
                 source = "loaded Python module"
-            elif spec_path:
-                path = spec_path
-                source = "Python import spec"
-            elif odoo_path:
-                path = os.path.abspath(os.path.expanduser(odoo_path))
-                source = "odoo.modules.get_module_path"
             else:
-                path = _module_path(module_name)
-                source = "addons path scan" if path else ""
+                path = ""
+                source = "not loaded in Python runtime"
             record.module_name = module_name
             record.module_path = path
             record.addons_dir = os.path.dirname(path) if path else ""
