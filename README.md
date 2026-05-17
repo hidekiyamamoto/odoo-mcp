@@ -353,11 +353,14 @@ Available operations:
 
 - `list_modules`
 - `list_files`
+- `check_permissions`
 - `read_file`
 - `write_file`
 - `delete_file`
 
 For file operations, send the allowlisted `module` separately from `fileName`, for example `{"module": "sale", "fileName": "models/sale_order.py"}`. The server joins `fileName` to the detected module folder and rejects absolute paths or `..` traversal.
+
+Use `check_permissions` before writes when ownership is unclear. It tests whether the Odoo process can create or modify the requested file path and reports whether a server-side permission fix is actually needed.
 
 This tool can write executable Odoo code in the installed addon folder. Keep module editing disabled unless you are actively reviewing code changes.
 

@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 
 import odoo.addons
 from odoo.http import request
@@ -190,7 +191,7 @@ def _file_name_arg(arguments):
     return file_name
 
 
-def _resolve_file_path(module, file_name, for_write=False):
+def _resolve_file_path(module, file_name):
     if not isinstance(file_name, str) or not file_name:
         raise ValueError("fileName is required.")
     normalized = _safe_subpath(file_name)
@@ -208,13 +209,113 @@ def _resolve_file_path(module, file_name, for_write=False):
     if os.path.exists(path):
         if not _is_inside_path(real_path, real_root):
             raise ValueError("fileName resolves outside the allowlisted module folder.")
-    elif for_write:
-        parent = os.path.dirname(path)
-        os.makedirs(parent, exist_ok=True)
-        if not _is_inside_path(os.path.realpath(parent), real_root):
-            raise ValueError("fileName parent resolves outside the allowlisted module folder.")
 
     return entry, path, normalized
+
+
+def _nearest_existing_parent(path, root):
+    parent = os.path.dirname(path)
+    while parent and not os.path.exists(parent):
+        if parent == root or not _is_inside_path(parent, root):
+            break
+        parent = os.path.dirname(parent)
+    return parent if parent and os.path.isdir(parent) else ""
+
+
+def _can_create_temp_file(directory):
+    if not directory or not os.path.isdir(directory):
+        return False, "Directory does not exist."
+    temp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=directory,
+            prefix=".perfect_odoo_mcp_write_test_",
+            delete=False,
+        ) as handle:
+            temp_path = handle.name
+            handle.write("ok")
+        os.remove(temp_path)
+        return True, ""
+    except OSError as error:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+        return False, str(error)
+
+
+def _write_permission_report(entry, path, normalized):
+    root = os.path.abspath(entry["module_path"])
+    real_root = os.path.realpath(root)
+    parent = os.path.dirname(path)
+    target_exists = os.path.exists(path)
+    nearest_parent = _nearest_existing_parent(path, root)
+    parent_exists = os.path.isdir(parent)
+    parent_real = os.path.realpath(parent if parent_exists else nearest_parent)
+    parent_inside = bool(parent_real and _is_inside_path(parent_real, real_root))
+
+    directory_to_test = parent if parent_exists else nearest_parent
+    can_create, create_error = _can_create_temp_file(directory_to_test)
+    file_writable = os.access(path, os.W_OK) if target_exists else None
+    writable = bool(parent_inside and (file_writable if target_exists else can_create))
+
+    reason = ""
+    if not parent_inside:
+        reason = "Parent directory resolves outside the allowlisted module folder."
+    elif target_exists and not file_writable:
+        reason = "Existing file is not writable by the Odoo process."
+    elif not target_exists and not can_create:
+        reason = create_error or "Odoo process cannot create files in the nearest existing parent directory."
+
+    return {
+        "module": entry["name"],
+        "modulePath": root,
+        "fileName": normalized,
+        "targetPath": path,
+        "targetExists": target_exists,
+        "parentPath": parent,
+        "nearestExistingParent": nearest_parent,
+        "parentInsideModule": parent_inside,
+        "canCreateInParent": can_create,
+        "fileWritable": file_writable,
+        "writable": writable,
+        "reason": reason,
+    }
+
+
+def _delete_permission_report(entry, path, normalized):
+    root = os.path.abspath(entry["module_path"])
+    real_root = os.path.realpath(root)
+    parent = os.path.dirname(path)
+    parent_real = os.path.realpath(parent)
+    parent_inside = _is_inside_path(parent_real, real_root)
+    target_exists = os.path.isfile(path)
+    can_create, create_error = _can_create_temp_file(parent)
+    deletable = bool(target_exists and parent_inside and can_create)
+
+    reason = ""
+    if not target_exists:
+        reason = "File does not exist."
+    elif not parent_inside:
+        reason = "Parent directory resolves outside the allowlisted module folder."
+    elif not can_create:
+        reason = create_error or "Odoo process cannot modify entries in the parent directory."
+
+    return {
+        "module": entry["name"],
+        "modulePath": root,
+        "fileName": normalized,
+        "targetPath": path,
+        "targetExists": target_exists,
+        "parentPath": parent,
+        "parentInsideModule": parent_inside,
+        "canModifyParent": can_create,
+        "deletable": deletable,
+        "reason": reason,
+    }
 
 
 def _list_files(module, recursive=False):
@@ -265,6 +366,28 @@ def module_edit(arguments):
             }
         )
 
+    if operation == "check_permissions":
+        file_name = _file_name_arg(arguments)
+        if file_name:
+            entry, path, normalized = _resolve_file_path(module, file_name)
+            return _tool_json(
+                {
+                    "write": _write_permission_report(entry, path, normalized),
+                    "delete": _delete_permission_report(entry, path, normalized),
+                }
+            )
+
+        entry = _module_entry(module)
+        can_create, reason = _can_create_temp_file(entry["module_path"])
+        return _tool_json(
+            {
+                "module": module,
+                "modulePath": entry["module_path"],
+                "writable": can_create,
+                "reason": reason,
+            }
+        )
+
     if operation == "read_file":
         file_name = _file_name_arg(arguments)
         entry, path, normalized = _resolve_file_path(module, file_name)
@@ -290,7 +413,13 @@ def module_edit(arguments):
         content = arguments.get("content")
         if not isinstance(content, str):
             raise ValueError("content must be a string.")
-        entry, path, normalized = _resolve_file_path(module, _file_name_arg(arguments), for_write=True)
+        entry, path, normalized = _resolve_file_path(module, _file_name_arg(arguments))
+        report = _write_permission_report(entry, path, normalized)
+        if not report["writable"]:
+            raise PermissionError(f"File is not writable by the Odoo process: {report['reason']}")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if not _is_inside_path(os.path.realpath(os.path.dirname(path)), os.path.realpath(entry["module_path"])):
+            raise ValueError("fileName parent resolves outside the allowlisted module folder.")
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(content)
         return _tool_json({"module": module, "fileName": normalized, "path": normalized, "status": "written"})
@@ -300,7 +429,12 @@ def module_edit(arguments):
         entry, path, normalized = _resolve_file_path(module, file_name)
         if not os.path.isfile(path):
             raise FileNotFoundError(f"File not found: {file_name}")
+        report = _delete_permission_report(entry, path, normalized)
+        if not report["deletable"]:
+            raise PermissionError(f"File is not deletable by the Odoo process: {report['reason']}")
         os.remove(path)
         return _tool_json({"module": module, "fileName": normalized, "path": normalized, "status": "deleted"})
 
-    raise ValueError("operation must be one of list_modules, list_files, read_file, write_file, delete_file.")
+    raise ValueError(
+        "operation must be one of list_modules, list_files, check_permissions, read_file, write_file, delete_file."
+    )
