@@ -357,6 +357,8 @@ Available operations:
 - `write_file`
 - `delete_file`
 
+For file operations, send the allowlisted `module` separately from `fileName`, for example `{"module": "sale", "fileName": "models/sale_order.py"}`. The server joins `fileName` to the detected module folder and rejects absolute paths or `..` traversal.
+
 This tool can write executable Odoo code in the installed addon folder. Keep module editing disabled unless you are actively reviewing code changes.
 
 ## Optional Custom MCP Tools
