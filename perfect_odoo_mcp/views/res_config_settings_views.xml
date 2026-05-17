@@ -21,6 +21,7 @@
                 <field name="module_name"/>
                 <field name="addons_dir" readonly="1"/>
                 <field name="module_path" readonly="1"/>
+                <field name="module_path_source" readonly="1" optional="hide"/>
             </tree>
         </field>
     </record>
@@ -37,6 +38,8 @@
                         <field name="module_name" readonly="1"/>
                         <field name="addons_dir" readonly="1"/>
                         <field name="module_path" readonly="1"/>
+                        <field name="module_path_source" readonly="1"/>
+                        <field name="module_path_candidates" readonly="1"/>
                     </group>
                 </sheet>
             </form>
