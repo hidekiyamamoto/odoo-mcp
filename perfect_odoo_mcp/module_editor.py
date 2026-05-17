@@ -3,6 +3,7 @@ import os
 import tempfile
 
 import odoo.addons
+import odoo.modules
 from odoo.http import request
 from odoo.tools import config as odoo_config
 
@@ -27,6 +28,10 @@ def module_editing_enabled():
 
 def _addons_roots():
     roots = []
+    for path in odoo.addons.__path__:
+        path = os.path.abspath(os.path.expanduser(path))
+        if os.path.isdir(path) and path not in roots:
+            roots.append(path)
     addons_path = odoo_config.get("addons_path") or []
     if isinstance(addons_path, str):
         addons_paths = addons_path.split(",")
@@ -36,10 +41,6 @@ def _addons_roots():
         path = str(path).strip()
         if not path:
             continue
-        path = os.path.abspath(os.path.expanduser(path))
-        if os.path.isdir(path) and path not in roots:
-            roots.append(path)
-    for path in odoo.addons.__path__:
         path = os.path.abspath(os.path.expanduser(path))
         if os.path.isdir(path) and path not in roots:
             roots.append(path)
@@ -67,6 +68,9 @@ def _is_inside_path(path, root):
 
 
 def _find_module_path(module_name):
+    path = odoo.modules.get_module_path(module_name, display_warning=False)
+    if path:
+        return os.path.abspath(os.path.expanduser(path))
     for root in _addons_roots():
         path = os.path.abspath(os.path.join(root, module_name))
         if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
