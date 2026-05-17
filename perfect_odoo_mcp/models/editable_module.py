@@ -41,7 +41,7 @@ def _module_path(module_name):
 class PerfectOdooMcpEditableModule(models.Model):
     _name = "perfect.odoo.mcp.editable.module"
     _description = "Perfect Odoo MCP Editable Module"
-    _rec_name = "module_id"
+    _rec_name = "module_name"
     _order = "sequence, id"
 
     sequence = fields.Integer(default=10)
@@ -50,12 +50,13 @@ class PerfectOdooMcpEditableModule(models.Model):
         "ir.module.module",
         string="Module",
         domain=[("state", "=", "installed")],
+        required=True,
         ondelete="cascade",
         help="Installed Odoo module that the MCP module editor may modify.",
     )
-    module_name = fields.Char(compute="_compute_module_paths", readonly=True)
-    addons_dir = fields.Char(string="Addons Directory", compute="_compute_module_paths", readonly=True)
-    module_path = fields.Char(string="Module Folder", compute="_compute_module_paths", readonly=True)
+    module_name = fields.Char(compute="_compute_module_paths", store=True, readonly=True)
+    addons_dir = fields.Char(string="Addons Directory", compute="_compute_module_paths", store=True, readonly=True)
+    module_path = fields.Char(string="Module Folder", compute="_compute_module_paths", store=True, readonly=True)
 
     _sql_constraints = [
         (
@@ -73,3 +74,14 @@ class PerfectOdooMcpEditableModule(models.Model):
             record.module_name = module_name
             record.module_path = path
             record.addons_dir = os.path.dirname(path) if path else ""
+
+    @api.depends("module_name", "module_id")
+    def _compute_display_name(self):
+        for record in self:
+            record.display_name = record.module_name or record.module_id.display_name or "New"
+
+    def name_get(self):
+        return [
+            (record.id, record.module_name or record.module_id.display_name or "New")
+            for record in self
+        ]
