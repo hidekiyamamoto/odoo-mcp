@@ -1,12 +1,17 @@
 import os
 
 import odoo.addons
+import odoo.modules
 from odoo import api, fields, models
 from odoo.tools import config as odoo_config
 
 
 def _addons_roots():
     roots = []
+    for path in odoo.addons.__path__:
+        path = os.path.abspath(os.path.expanduser(path))
+        if os.path.isdir(path) and path not in roots:
+            roots.append(path)
     addons_path = odoo_config.get("addons_path") or []
     if isinstance(addons_path, str):
         addons_paths = addons_path.split(",")
@@ -19,16 +24,15 @@ def _addons_roots():
         path = os.path.abspath(os.path.expanduser(path))
         if os.path.isdir(path) and path not in roots:
             roots.append(path)
-    for path in odoo.addons.__path__:
-        path = os.path.abspath(os.path.expanduser(path))
-        if os.path.isdir(path) and path not in roots:
-            roots.append(path)
     return roots
 
 
 def _module_path(module_name):
     if not module_name:
         return ""
+    path = odoo.modules.get_module_path(module_name, display_warning=False)
+    if path:
+        return os.path.abspath(os.path.expanduser(path))
     for root in _addons_roots():
         path = os.path.abspath(os.path.join(root, module_name))
         if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
@@ -54,9 +58,9 @@ class PerfectOdooMcpEditableModule(models.Model):
         ondelete="cascade",
         help="Installed Odoo module that the MCP module editor may modify.",
     )
-    module_name = fields.Char(compute="_compute_module_paths", store=True, readonly=True)
-    addons_dir = fields.Char(string="Addons Directory", compute="_compute_module_paths", store=True, readonly=True)
-    module_path = fields.Char(string="Module Folder", compute="_compute_module_paths", store=True, readonly=True)
+    module_name = fields.Char(compute="_compute_module_paths", readonly=True)
+    addons_dir = fields.Char(string="Addons Directory", compute="_compute_module_paths", readonly=True)
+    module_path = fields.Char(string="Module Folder", compute="_compute_module_paths", readonly=True)
 
     _sql_constraints = [
         (
