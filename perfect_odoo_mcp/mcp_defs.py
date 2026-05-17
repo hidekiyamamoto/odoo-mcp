@@ -446,9 +446,16 @@ MODULE_EDITOR_TOOL = {
                 "type": "string",
                 "description": "Allowlisted installed module name. Required except for list_modules.",
             },
+            "fileName": {
+                "type": "string",
+                "description": (
+                    "File path relative to the allowlisted module folder, for example models/sale_order.py. "
+                    "Required for file operations. Must not be absolute or contain '..'."
+                ),
+            },
             "path": {
                 "type": "string",
-                "description": "Path relative to the allowlisted module folder. Required for file operations.",
+                "description": "Deprecated alias for fileName. Do not send an absolute path.",
             },
             "content": {
                 "type": "string",
