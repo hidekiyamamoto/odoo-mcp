@@ -1,11 +1,9 @@
 import json
-import importlib.util
 import os
 import sys
 import tempfile
 
 import odoo.addons
-import odoo.modules
 from odoo.http import request
 from odoo.tools import config as odoo_config
 
@@ -69,13 +67,6 @@ def _is_inside_path(path, root):
         return False
 
 
-def _odoo_module_path(module_name):
-    try:
-        return odoo.modules.get_module_path(module_name, display_warning=False)
-    except TypeError:
-        return odoo.modules.get_module_path(module_name)
-
-
 def _manifest_dir_from_path(path, module_name):
     if not path:
         return ""
@@ -127,38 +118,8 @@ def _runtime_module_path(module_name):
     return ""
 
 
-def _spec_module_path(module_name):
-    try:
-        spec = importlib.util.find_spec(f"odoo.addons.{module_name}")
-    except (ImportError, ValueError):
-        return ""
-    locations = getattr(spec, "submodule_search_locations", None) if spec else None
-    if not locations:
-        return ""
-    for location in locations:
-        path = _manifest_dir_from_path(location, module_name)
-        if path:
-            return path
-    return ""
-
-
 def _find_module_path(module_name):
-    path = _runtime_module_path(module_name)
-    if path:
-        return path
-    path = _spec_module_path(module_name)
-    if path:
-        return path
-    path = _odoo_module_path(module_name)
-    if path:
-        return os.path.abspath(os.path.expanduser(path))
-    for root in _addons_roots():
-        path = os.path.abspath(os.path.join(root, module_name))
-        if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
-            os.path.join(path, "__openerp__.py")
-        ):
-            return path
-    return ""
+    return _runtime_module_path(module_name)
 
 
 def _parse_module_lines(raw_value):
