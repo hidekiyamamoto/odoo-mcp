@@ -46,13 +46,23 @@ def _addons_roots():
 
 
 def _safe_subpath(value):
-    value = (value or "").strip().strip("/")
+    value = (value or "").strip()
     if not value or os.path.isabs(value) or "\0" in value:
+        return ""
+    value = value.replace("\\", "/")
+    if value.startswith("/") or "/../" in f"/{value}/":
         return ""
     normalized = os.path.normpath(value)
     if normalized == "." or normalized.startswith("..") or f"{os.sep}.." in normalized:
         return ""
     return normalized
+
+
+def _is_inside_path(path, root):
+    try:
+        return os.path.commonpath([root, path]) == root
+    except ValueError:
+        return False
 
 
 def _find_module_path(module_name):
@@ -173,19 +183,38 @@ def _module_entry(module):
     return entry
 
 
-def _resolve_file_path(module, relative_path):
-    if not isinstance(relative_path, str) or not relative_path:
-        raise ValueError("path is required.")
-    normalized = _safe_subpath(relative_path)
+def _file_name_arg(arguments):
+    file_name = arguments.get("fileName")
+    if file_name is None:
+        file_name = arguments.get("path")
+    return file_name
+
+
+def _resolve_file_path(module, file_name, for_write=False):
+    if not isinstance(file_name, str) or not file_name:
+        raise ValueError("fileName is required.")
+    normalized = _safe_subpath(file_name)
     if not normalized:
-        raise ValueError("path must stay inside the allowlisted module folder.")
+        raise ValueError("fileName must be relative and must not contain '..' path traversal.")
 
     entry = _module_entry(module)
-    root = entry["module_path"]
+    root = os.path.abspath(entry["module_path"])
+    real_root = os.path.realpath(root)
     path = os.path.abspath(os.path.join(root, normalized))
-    if path == root or not path.startswith(root + os.sep):
-        raise ValueError("path must stay inside the allowlisted module folder.")
-    return entry, path
+    if path == root or not _is_inside_path(path, root):
+        raise ValueError("fileName must stay inside the allowlisted module folder.")
+
+    real_path = os.path.realpath(path)
+    if os.path.exists(path):
+        if not _is_inside_path(real_path, real_root):
+            raise ValueError("fileName resolves outside the allowlisted module folder.")
+    elif for_write:
+        parent = os.path.dirname(path)
+        os.makedirs(parent, exist_ok=True)
+        if not _is_inside_path(os.path.realpath(parent), real_root):
+            raise ValueError("fileName parent resolves outside the allowlisted module folder.")
+
+    return entry, path, normalized
 
 
 def _list_files(module, recursive=False):
@@ -237,9 +266,10 @@ def module_edit(arguments):
         )
 
     if operation == "read_file":
-        entry, path = _resolve_file_path(module, arguments.get("path"))
+        file_name = _file_name_arg(arguments)
+        entry, path, normalized = _resolve_file_path(module, file_name)
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"File not found: {arguments.get('path')}")
+            raise FileNotFoundError(f"File not found: {file_name}")
         max_bytes = int(arguments.get("maxBytes") or 200000)
         max_bytes = max(1, min(max_bytes, 1000000))
         with open(path, "rb") as handle:
@@ -249,7 +279,8 @@ def module_edit(arguments):
         return _tool_json(
             {
                 "module": module,
-                "path": os.path.relpath(path, entry["module_path"]),
+                "fileName": normalized,
+                "path": normalized,
                 "truncated": truncated,
                 "content": text,
             }
@@ -259,17 +290,17 @@ def module_edit(arguments):
         content = arguments.get("content")
         if not isinstance(content, str):
             raise ValueError("content must be a string.")
-        entry, path = _resolve_file_path(module, arguments.get("path"))
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        entry, path, normalized = _resolve_file_path(module, _file_name_arg(arguments), for_write=True)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(content)
-        return _tool_json({"module": module, "path": os.path.relpath(path, entry["module_path"]), "status": "written"})
+        return _tool_json({"module": module, "fileName": normalized, "path": normalized, "status": "written"})
 
     if operation == "delete_file":
-        entry, path = _resolve_file_path(module, arguments.get("path"))
+        file_name = _file_name_arg(arguments)
+        entry, path, normalized = _resolve_file_path(module, file_name)
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"File not found: {arguments.get('path')}")
+            raise FileNotFoundError(f"File not found: {file_name}")
         os.remove(path)
-        return _tool_json({"module": module, "path": os.path.relpath(path, entry["module_path"]), "status": "deleted"})
+        return _tool_json({"module": module, "fileName": normalized, "path": normalized, "status": "deleted"})
 
     raise ValueError("operation must be one of list_modules, list_files, read_file, write_file, delete_file.")
