@@ -27,10 +27,17 @@ def _addons_roots():
     return roots
 
 
+def _odoo_module_path(module_name):
+    try:
+        return odoo.modules.get_module_path(module_name, display_warning=False)
+    except TypeError:
+        return odoo.modules.get_module_path(module_name)
+
+
 def _module_path(module_name):
     if not module_name:
         return ""
-    path = odoo.modules.get_module_path(module_name, display_warning=False)
+    path = _odoo_module_path(module_name)
     if path:
         return os.path.abspath(os.path.expanduser(path))
     for root in _addons_roots():
