@@ -439,7 +439,7 @@ MODULE_EDITOR_TOOL = {
         "properties": {
             "operation": {
                 "type": "string",
-                "enum": ["list_modules", "list_files", "read_file", "write_file", "delete_file"],
+                "enum": ["list_modules", "list_files", "check_permissions", "read_file", "write_file", "delete_file"],
                 "description": "File operation to perform.",
             },
             "module": {
@@ -450,7 +450,7 @@ MODULE_EDITOR_TOOL = {
                 "type": "string",
                 "description": (
                     "File path relative to the allowlisted module folder, for example models/sale_order.py. "
-                    "Required for file operations. Must not be absolute or contain '..'."
+                    "Required for read/write/delete and optional for check_permissions. Must not be absolute or contain '..'."
                 ),
             },
             "path": {
