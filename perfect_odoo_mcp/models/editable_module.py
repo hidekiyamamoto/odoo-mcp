@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import sys
 
 import odoo.addons
 import odoo.modules
@@ -35,7 +36,58 @@ def _odoo_module_path(module_name):
         return odoo.modules.get_module_path(module_name)
 
 
-def _python_module_path(module_name):
+def _manifest_dir_from_path(path, module_name):
+    if not path:
+        return ""
+    path = os.path.abspath(os.path.expanduser(path))
+    if os.path.basename(path) == "__init__.py":
+        path = os.path.dirname(path)
+    elif path.endswith((".pyc", ".pyo")):
+        parts = path.split(os.sep)
+        if "__pycache__" in parts:
+            path = os.sep.join(parts[: parts.index("__pycache__")])
+        else:
+            path = os.path.dirname(path)
+    elif os.path.isfile(path):
+        path = os.path.dirname(path)
+
+    while path and os.path.basename(path) != module_name:
+        parent = os.path.dirname(path)
+        if parent == path:
+            return ""
+        path = parent
+
+    if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(os.path.join(path, "__openerp__.py")):
+        return path
+    return ""
+
+
+def _runtime_module_path(module_name):
+    prefix = f"odoo.addons.{module_name}"
+    for name in (prefix, f"{prefix}.models", f"{prefix}.controllers"):
+        module = sys.modules.get(name)
+        locations = getattr(module, "__path__", None) if module else None
+        if locations:
+            for location in locations:
+                path = _manifest_dir_from_path(location, module_name)
+                if path:
+                    return path
+        for attr in ("__file__", "__cached__"):
+            path = _manifest_dir_from_path(getattr(module, attr, ""), module_name) if module else ""
+            if path:
+                return path
+
+    for name, module in sorted(sys.modules.items()):
+        if not name.startswith(prefix + "."):
+            continue
+        for attr in ("__file__", "__cached__"):
+            path = _manifest_dir_from_path(getattr(module, attr, ""), module_name)
+            if path:
+                return path
+    return ""
+
+
+def _spec_module_path(module_name):
     try:
         spec = importlib.util.find_spec(f"odoo.addons.{module_name}")
     except (ImportError, ValueError):
@@ -43,16 +95,20 @@ def _python_module_path(module_name):
     locations = getattr(spec, "submodule_search_locations", None) if spec else None
     if not locations:
         return ""
-    path = os.path.abspath(os.path.expanduser(list(locations)[0]))
-    if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(os.path.join(path, "__openerp__.py")):
-        return path
+    for location in locations:
+        path = _manifest_dir_from_path(location, module_name)
+        if path:
+            return path
     return ""
 
 
 def _module_path(module_name):
     if not module_name:
         return ""
-    path = _python_module_path(module_name)
+    path = _runtime_module_path(module_name)
+    if path:
+        return path
+    path = _spec_module_path(module_name)
     if path:
         return path
     path = _odoo_module_path(module_name)
@@ -65,20 +121,6 @@ def _module_path(module_name):
         ):
             return path
     return ""
-
-
-def _module_path_candidates(module_name):
-    if not module_name:
-        return []
-    candidates = []
-    for root in _addons_roots():
-        path = os.path.abspath(os.path.join(root, module_name))
-        if os.path.isfile(os.path.join(path, "__manifest__.py")) or os.path.isfile(
-            os.path.join(path, "__openerp__.py")
-        ):
-            if path not in candidates:
-                candidates.append(path)
-    return candidates
 
 
 class PerfectOdooMcpEditableModule(models.Model):
@@ -100,7 +142,6 @@ class PerfectOdooMcpEditableModule(models.Model):
     addons_dir = fields.Char(string="Addons Directory", compute="_compute_module_paths", readonly=True)
     module_path = fields.Char(string="Module Folder", compute="_compute_module_paths", readonly=True)
     module_path_source = fields.Char(string="Path Source", compute="_compute_module_paths", readonly=True)
-    module_path_candidates = fields.Text(string="Detected Module Folders", compute="_compute_module_paths", readonly=True)
 
     _sql_constraints = [
         (
@@ -114,20 +155,22 @@ class PerfectOdooMcpEditableModule(models.Model):
     def _compute_module_paths(self):
         for record in self:
             module_name = record.module_id.name or ""
-            python_path = _python_module_path(module_name) if module_name else ""
+            runtime_path = _runtime_module_path(module_name) if module_name else ""
+            spec_path = _spec_module_path(module_name) if module_name else ""
             odoo_path = _odoo_module_path(module_name) if module_name else ""
-            if python_path:
-                path = python_path
-                source = "python package"
+            if runtime_path:
+                path = runtime_path
+                source = "loaded Python module"
+            elif spec_path:
+                path = spec_path
+                source = "Python import spec"
             elif odoo_path:
                 path = os.path.abspath(os.path.expanduser(odoo_path))
                 source = "odoo.modules.get_module_path"
             else:
                 path = _module_path(module_name)
                 source = "addons path scan" if path else ""
-            candidates = _module_path_candidates(module_name)
             record.module_name = module_name
             record.module_path = path
             record.addons_dir = os.path.dirname(path) if path else ""
             record.module_path_source = source
-            record.module_path_candidates = "\n".join(candidates)
