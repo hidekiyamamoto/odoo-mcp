@@ -1,16 +1,25 @@
 import os
 
-from odoo import api, fields, models, release
+import odoo.addons
+from odoo import api, fields, models
 from odoo.tools import config as odoo_config
 
 
 def _addons_roots():
     roots = []
-    for path in (odoo_config.get("addons_path") or "").split(","):
-        path = os.path.abspath(os.path.expanduser(path.strip()))
+    addons_path = odoo_config.get("addons_path") or []
+    if isinstance(addons_path, str):
+        addons_paths = addons_path.split(",")
+    else:
+        addons_paths = addons_path
+    for path in addons_paths:
+        path = str(path).strip()
+        if not path:
+            continue
+        path = os.path.abspath(os.path.expanduser(path))
         if os.path.isdir(path) and path not in roots:
             roots.append(path)
-    for path in release.addons_paths:
+    for path in odoo.addons.__path__:
         path = os.path.abspath(os.path.expanduser(path))
         if os.path.isdir(path) and path not in roots:
             roots.append(path)
